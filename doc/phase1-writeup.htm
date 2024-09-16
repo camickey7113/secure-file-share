@@ -82,7 +82,7 @@
     <ul>
       <li>Anita: Resource Server- Elevated access</li>
       <li>Gab: Authentication Server</li>
-      <li>Cole: Resource Server - Basic Access</li>
+      <li>Cole: Client Side Integration</li>
       <li>Cam: Client Side Integration</li>
     </ul>
 
@@ -139,20 +139,101 @@
     <h2>3. Security Properties</h2>
     <!-- BEGIN CHANGES HERE -->
 
-    <p>This section should describe the properties that your group has identified as
-      being relevant to the application you are proposing. You should aim to find at
-      least 15–20 such properties. This section should be arranged as a bulleted list
-      of properties that <span class="emph">may</span> apply to a system like the one
-      you are designing. As noted in Task 3, it is possible that some of these
-      properties will be incompatible with one another.</p>
-
-    <ul>
-      <li>Some Property: Define the property</li>
-      <li>Another Property: Define it, as well</li>
-      <li>...</li>
-    </ul>
-
-    <p>Remove these instructions and examples from your final submission.</p>
+    <ol>
+      <li>File Access Confidentiality</li>
+      <ul>
+        <li>Property ensures that only authorized users can view contents in a file.</li>
+        <li>This protects all private information stored in files from unauthorized access.</li>
+        <li>It is assumed proper encryption and access control policies are enforced.</li>
+      </ul>
+      <li>Data Integrity Protection</li>
+      <ul>
+        <li>Property ensures that file data remains unaltered unless modified by an authorized user.</li>
+        <li>This prevents corruption of data in files.</li>
+        <li>It is assumed proper encryption takes place and relies on signatures for verification.</li>
+      </ul>
+      <li>Permission-Based File Authorization</li>
+      <ul>
+        <li>Property ensures that users only have permissions to perform authorized actions such as R, W, or X.</li>
+        <li>This prevents unauthorized modifications on files.</li>
+        <li>It is assumed the system has permission assignments.</li>
+      </ul>
+      <li>File Availability Assurance</li>
+      <ul>
+        <li>Property ensures that users can access files and resources when needed.</li>
+        <li>This prevents disruptions in file accesses.</li>
+        <li>It is assumed that the system is efficient in preventing system redundancies.</li>
+      </ul>
+      <li>Logging Data Accesses</li>
+      <ul>
+        <li>Property ensures that we have a log of who is accessing or modifying specific files.</li>
+        <li>This allows us to see activity in the event of a security breach.</li>
+        <li>This assumes that the system is capable of logging access and is secure to those with access.</li>
+      </ul>
+      <li>Physical Encryption of Data</li>
+      <ul>
+        <li>Property ensures that the data stored on the physical disk is encrypted.</li>
+        <li>This allows us to be secure in the event of a physical breach of data.</li>
+        <li>This assumes the system is securely stored in a location where the disk itself is unable to be stolen.</li>
+      </ul>
+      <li>Timed Access</li>
+      <ul>
+        <li>Property ensures that the user has a limited amount of time to access or modify files before they have to re-authenticate.</li>
+        <li>This ensures that the user is re-authenticating often in the event that their work station is left unattended.</li>
+        <li>This assumes that the system enforces authentication after a certain period of time.</li>
+      </ul>
+      <li>File Replication Consistency</li>
+      <ul>
+        <li>Property ensures that files are synchronized across all file locations so users are getting the most up to date version.</li>
+        <li>This ensures that users all are modifying and accessing the same files across all locations.</li>
+        <li>This assumes the system has a synchronization mechanism for files of the same name.</li>
+      </ul>
+      <li>No-Access Default</li>
+      <ul>
+        <li>By default, unless a user is recognized within the authentication server, they are not given a valid key or metadata</li>
+        <li>Ensures that someone without explicit permission from authentication servers cannot access resources</li>
+      </ul>
+      <li>Brute-Force Protection</li>
+      <ul>
+        <li>Server should be able to handle multiple simultaneous accesses</li>
+        <li>Server should employ the use of longer passwords and keys</li>
+        <li>Ensures the resources required to deny availability or break encryption are much larger</li>
+      </ul>
+      <li>Record-Keeping</li>
+      <ul>
+        <li>Resource server keeps a log of accesses which have valid keys</li>
+        <li>Authentication server keeps a log of login attempts</li>
+        <li>Attacks that occur are recorded</li>
+      </ul>
+      <li>Log Protection/Encryption</li>
+      <ul>
+        <li>Logs of file access, read, write, executions, as well as authentication server logins, and resource server accesses are kept encrypted</li>
+        <li>Ensures attackers cannot modify recordings of behavior</li>
+      </ul>
+      <li>Directory Access Confidentiality</li>
+      <ul>
+        <li>Ensures that only authorized users can view the contents of a directory.</li>
+        <li>This prevents users from entering directories that they do not have access to.</li>
+        <li>It is assumed proper encryption and access control policies are enforced.</li>
+      </ul>
+      <li>File Access Consistency</li>
+      <ul>
+        <li>Only one user will be able to access a file at a time.</li>
+        <li>This prevents information from being overwritten or saves from being corrupted.</li>
+        <li>This assumes file replication consistency exists.</li>
+      </ul>
+      <li>Public Algorithm Use</li>
+      <ul>
+        <li>Encryption, decryption, and authentication will rely on publicly available algorithms.</li>
+        <li>This avoids the need to keep the algorithms a secret and instead allows the software to rely on secret parameters.</li>
+        <li>This assumes the parameters used in the algorithms are kept a secret.</li>
+      </ul>
+      <li>Incorrect Login Confirmation</li>
+      <ul>
+        <li>When attempting to login as a user, messages about incorrect usernames and passwords will not provide any further information.</li>
+        <li>This prevents attackers from confirming the existence of a username in the system.</li>
+        <li>This assumes the system will provide an error message when an invalid login attempt is made.</li>
+    </ol>
 
     <!-- END CHANGES HERE -->
   </section>
@@ -160,12 +241,11 @@
     <h2>4. References</h2>
     <!-- BEGIN CHANGES HERE -->
 
-    <p>If your planned development process, system design, or security properties
-      are inspired by material from outside sources (e.g., books, papers, articles,
-      blog posts, or existing products), your sources should be cited here.</p>
-
-    <p>Remove these instructions and examples from your final submission.</p>
-
+    https://www.geeksforgeeks.org/what-is-an-authentication-server/
+    https://www.freecodecamp.org/news/oauth2-resourceserver-with-spring-security/
+    https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2
+    https://people.cs.pitt.edu/~bill/1653/#lecture
+  
     <!-- END CHANGES HERE -->
   </section>
 </body>
