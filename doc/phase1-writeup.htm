@@ -1,47 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <title>CS 1653 Project P1 Writeup</title>
   <style>
-/* BEGIN CHANGES HERE */
+    /* BEGIN CHANGES HERE */
 
-/* In this section, you may add CSS styling if desired */
-header {
-  text-align: center;
-}
+    /* In this section, you may add CSS styling if desired */
+    header {
+      text-align: center;
+    }
 
-.emph {
-  font-style: italic;
-}
+    .emph {
+      font-style: italic;
+    }
 
-/* END CHANGES HERE */
+    /* END CHANGES HERE */
   </style>
-  <body>
-    <header>
-      <h1>CS 1653 Project P1 Writeup</h1>
-      <h2>
-<!-- BEGIN CHANGES HERE -->
 
-Anita Kaul- ank249@pitt.edu
-Gabrielle Martin- gjm55@pitt.edu
-Cole Swierczek- cjs309@pitt.edu
-Cam Mickey- cam597@pitt.edu
+<body>
+  <header>
+    <h1>CS 1653 Project P1 Writeup</h1>
+    <h2>
+      <!-- BEGIN CHANGES HERE -->
 
-<!-- END CHANGES HERE -->
-      </h2>
-    </header>
-    <section id="group">
-      <h2>1. Group Information</h2>
-<!-- BEGIN CHANGES HERE -->
+      <!-- END CHANGES HERE -->
+    </h2>
+  </header>
+  <section id="group">
+    <h2>1. Group Information</h2>
+    <!-- BEGIN CHANGES HERE -->
 
-<p>Explain your planned development process, the strengths of your group, the
-roles each member will play (and whether they will change), and how you plan to
-enforce internal deadlines and ensure accountability. (See Task 1 for other
-questions you should consider answering here.)</p>
+    <p>
+      Anita Kaul- ank249@pitt.edu<br>
+      Gabrielle Martin- gjm55@pitt.edu<br>
+      Cole Swierczek- cjs309@pitt.edu<br>
+      Cam Mickey- cam597@pitt.edu<br>
 
-<p>
-  <h4>Organization</h4>
+    <h4>Development Process</h4>
+    Our development process will consist of assigning elements of the framework to different team members. On a weekly
+    basis, we plan to meet to discuss progress, resolve any integration issues, and help one another with bugs. We will
+    set deadlines for deliverables in order to reach project milestones through the semester.
+
+    Each member will be asked to review the following on a per meeting basis:
+
+    <ul>
+      <li>What was accomplished the previous week</li>
+      <li>What will be accomplished in the next week</li>
+      <li>Conflicts that were resolved</li>
+      <li>Conflicts that are unresolved</li>
+      <li>Integration needed in the coming week</li>
+    </ul>
+
+    The group will meet weekly on Wednesdays at 12-2PM unless stated otherwise.
+
+    <h4>Organization</h4>
     Each member will be asked to review the following on a per meeting basis:
     <ul>
       <li>What was accomplished the previous week</li>
@@ -52,14 +66,14 @@ questions you should consider answering here.)</p>
     </ul>
     The group will meet weekly on Wednesdays at 12-2PM unless stated otherwise.
 
-  <h4>Strengths</h4>
+    <h4>Strengths</h4>
     <p>
-      Group has experience in Java, MySQL, and Maven. Members are familiar 
-      with database management systems, and all have completed operating systems. All 
+      Group has experience in Java, MySQL, and Maven. Members are familiar
+      with database management systems, and all have completed operating systems. All
       members have experience in a professional environment doing group work.
     </p>
 
-  <h4>Roles</h4>
+    <h4>Roles</h4>
     <ol>
       <li>Authentication server - database setup and user management</li>
       <li>Resource server - basic access, elevated access and setup for each</li>
@@ -72,70 +86,88 @@ questions you should consider answering here.)</p>
       <li>Cam: Client Side Integration</li>
     </ul>
 
-  <h4>Deadline Enforcement and Accountability</h4>
+    <h4>Deadline Enforcement and Accountability</h4>
     <p>
-      Each group member will be informed ahead of time what their responsibilities 
-      are for the week. If a group member thinks they will not be able to complete 
-      their tasks by the deadline, they will communicate this with the group, who 
+      Each group member will be informed ahead of time what their responsibilities
+      are for the week. If a group member thinks they will not be able to complete
+      their tasks by the deadline, they will communicate this with the group, who
       will collectively decide how to manage the situation.
     </p>
 
-  <h4>Dispute Management</h4>
+    <h4>Dispute Management</h4>
     <p>
       Disputes will be attempted to be resolved among the group members, and will
-        be taken to Professor Garrison if no resolution is found.
+      be taken to Professor Garrison if no resolution is found.
     </p>
-</p>
+    </p>
 
-<!-- END CHANGES HERE -->
-    </section>
-    <section id="design">
-      <h2>2. Design Proposal</h2>
-<!-- BEGIN CHANGES HERE -->
+    <!-- END CHANGES HERE -->
+  </section>
+  <section id="design">
+    <h2>2. Design Proposal</h2>
+    <!-- BEGIN CHANGES HERE -->
 
-<p>Overview the design of your system. Define more precisely the roles of the
-authentication server and resource server, what type of resources are managed,
-how accesses are determined and modified, what information is stored about
-users, and the full set of operations that users have access to. (See Task 2 for
-more details and requirements about your design.)</p>
+    <h4>Overview</h4>
+    Our group will be creating a file system that allows users to read, write, and execute files based on
+    their permissions within the system. The authentication server will be used to determine or change a user’s
+    permissions. Resource servers will be used to distribute the file capabilities.
 
-<p>Remove these instructions and examples from your final submission.</p>
+    <h4>Authentication Server</h4>
+    The authentication server will be where all users and user permissions are managed. In
+    addition, the authentication server will generate a token to send to the client side in order to determine which
+    type of access (basic or elevated) the user can initiate. In this scenario, read is basic access, and write/execute
+    are elevated access. The authentication server should also be able to handle permission changes and new users.
 
-<!-- END CHANGES HERE -->
-    </section>
-    <section id="properties">
-      <h2>3. Security Properties</h2>
-<!-- BEGIN CHANGES HERE -->
+    <h4>Resource Server</h4>
+    The resource server will store files that the users can access and modify based on metadata in
+    keys provided by the client. The metadata will determine whether users can make, read, modify, move and execute
+    files. It will then contain the functionalities for these processes. In addition, it will validate the token
+    presented by the client.
 
-<p>This section should describe the properties that your group has identified as
-being relevant to the application you are proposing. You should aim to find at
-least 15–20 such properties. This section should be arranged as a bulleted list
-of properties that <span class="emph">may</span> apply to a system like the one
-you are designing. As noted in Task 3, it is possible that some of these
-properties will be incompatible with one another.</p>
+    <h4>Client Side Integration</h4>
+    The Client Side is responsible for relaying information between the Authentication Server
+    and the Resource Servers.
 
-<ul>
-  <li>Some Property: Define the property</li>
-  <li>Another Property: Define it, as well</li>
-  <li>...</li>
-</ul>
+    <p>Programming Language: Java</p>
+    
+    <p>Potential Frameworks: MySQL, H2, Post-Gresql, Springboot/Spring Initializr, JWT, OAuth2</p>
 
-<p>Remove these instructions and examples from your final submission.</p>
 
-<!-- END CHANGES HERE -->
-    </section>
-    <section id="references">
-      <h2>4. References</h2>
-<!-- BEGIN CHANGES HERE -->
+    <!-- END CHANGES HERE -->
+  </section>
+  <section id="properties">
+    <h2>3. Security Properties</h2>
+    <!-- BEGIN CHANGES HERE -->
 
-<p>If your planned development process, system design, or security properties
-are inspired by material from outside sources (e.g., books, papers, articles,
-blog posts, or existing products), your sources should be cited here.</p>
+    <p>This section should describe the properties that your group has identified as
+      being relevant to the application you are proposing. You should aim to find at
+      least 15–20 such properties. This section should be arranged as a bulleted list
+      of properties that <span class="emph">may</span> apply to a system like the one
+      you are designing. As noted in Task 3, it is possible that some of these
+      properties will be incompatible with one another.</p>
 
-<p>Remove these instructions and examples from your final submission.</p>
+    <ul>
+      <li>Some Property: Define the property</li>
+      <li>Another Property: Define it, as well</li>
+      <li>...</li>
+    </ul>
 
-<!-- END CHANGES HERE -->
-    </section>
-  </body>
+    <p>Remove these instructions and examples from your final submission.</p>
+
+    <!-- END CHANGES HERE -->
+  </section>
+  <section id="references">
+    <h2>4. References</h2>
+    <!-- BEGIN CHANGES HERE -->
+
+    <p>If your planned development process, system design, or security properties
+      are inspired by material from outside sources (e.g., books, papers, articles,
+      blog posts, or existing products), your sources should be cited here.</p>
+
+    <p>Remove these instructions and examples from your final submission.</p>
+
+    <!-- END CHANGES HERE -->
+  </section>
+</body>
+
 </html>
-
