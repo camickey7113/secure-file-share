@@ -1,2 +1,2 @@
-Please see the [project description](desc/phase_1.pdf) for details.
+Please see the [Phase 2 description](desc/phase_2.pdf) for details.
 
