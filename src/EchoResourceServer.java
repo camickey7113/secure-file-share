@@ -8,7 +8,7 @@ import java.net.Socket;        // Incoming connections are represented as socket
  * @author Adam J. Lee (adamlee@cs.pitt.edu)
  *
  */
-public class EchoServer
+public class EchoResourceServer
 {
     /** The server will listen on this port for client connections */
     public static final int SERVER_PORT = 8765;

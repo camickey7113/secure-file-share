@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;  // For writing Java objects to the wire
 public class EchoThread extends Thread
 {
     private final Socket socket;                   // The socket that we'll be talking over
+	private final String token;
 
     /**
      * Constructor that sets up the socket we'll chat over
@@ -22,6 +23,7 @@ public class EchoThread extends Thread
     public EchoThread(Socket _socket)
     {
 	socket = _socket;
+	token = "Bello";
     }
 
 
@@ -50,7 +52,7 @@ public class EchoThread extends Thread
 
 		// Write an ACK back to the sender
 		count++;
-		output.writeObject(new Message("Recieved message #" + count));
+		output.writeObject(new Message(token));
 
 	    }while(!msg.theMessage.toUpperCase().equals("EXIT"));
 
