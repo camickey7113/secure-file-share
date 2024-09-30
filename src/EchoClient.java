@@ -43,22 +43,25 @@ public class EchoClient
 	    // loop to send messages
 	    Message msg = null, resp = null;
 	    do {
-			// Read and send message.  Since the Message class
-			// implements the Serializable interface, the
-			// ObjectOutputStream "output" object automatically
-			// encodes the Message object into a format that can
-			// be transmitted over the socket to the server.
-			msg = new Message(attemptLogin());
-			output.writeObject(msg);
+			while(true){
+				// Read and send message.  Since the Message class
+				// implements the Serializable interface, the
+				// ObjectOutputStream "output" object automatically
+				// encodes the Message object into a format that can
+				// be transmitted over the socket to the server.
+				msg = new Message(readCredentials());
+				output.writeObject(msg);
 
-			// Get ACK and print.  Since Message implements
-			// Serializable, the ObjectInputStream can
-			// automatically read this object off of the wire and
-			// encode it as a Message.  Note that we need to
-			// explicitly cast the return from readObject() to the
-			// type Message.
-			resp = (Message)input.readObject();
-			System.out.println("\nServer says: " + resp.theMessage + "\n");
+				// Get ACK and print.  Since Message implements
+				// Serializable, the ObjectInputStream can
+				// automatically read this object off of the wire and
+				// encode it as a Message.  Note that we need to
+				// explicitly cast the return from readObject() to the
+				// type Message.
+				resp = (Message)input.readObject();
+				//System.out.println("\nServer says: " + resp.theMessage + "\n");
+				if(resp) break;
+			}
 
 	    } while(!msg.theMessage.toUpperCase().equals("EXIT"));
 	    
@@ -94,7 +97,7 @@ public class EchoClient
 
     } //-- end readSomeText()
 
-	private static String attemptLogin()
+	private static String readCredentials()
 	{
 	try{
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
