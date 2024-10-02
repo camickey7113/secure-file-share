@@ -26,10 +26,10 @@ public class EchoResourceServer
 	    
 	    // A simple infinite loop to accept connections
 	    Socket sock = null;
-	    EchoThread thread = null;
+	    EchoResourceThread thread = null;
 	    while(true){
 		sock = serverSock.accept();     // Accept an incoming connection
-		thread = new EchoThread(sock);  // Create a thread to handle this connection
+		thread = new EchoResourceThread(sock);  // Create a thread to handle this connection
 		thread.start();                 // Fork the thread
 	    }                                   // Loop to work on new connections while this
                                                 // the accept()ed connection is handled

@@ -41,7 +41,7 @@ public class EchoClient
 	    final ObjectInputStream input = new ObjectInputStream(sock.getInputStream());
 
 	    // loop to send messages
-	    Message msg = null, resp = null;
+	    Message msg = null, resp = null, token = null;
 	    do {
 			while(true){
 				// Read and send message.  Since the Message class
@@ -58,9 +58,9 @@ public class EchoClient
 				// encode it as a Message.  Note that we need to
 				// explicitly cast the return from readObject() to the
 				// type Message.
-				resp = (Message)input.readObject();
-				//System.out.println("\nServer says: " + resp.theMessage + "\n");
-				if(resp != null) break;
+				token = (Message)input.readObject();
+				System.out.println("\nServer says: " + token.theMessage + "\n" + "Token: " + token.token);
+				if(token != null) break;
 			}
 
 			do{
