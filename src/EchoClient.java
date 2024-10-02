@@ -33,8 +33,8 @@ public class EchoClient
 
 	try{
 	    // Connect to the specified server
-	    final Socket sock = new Socket(args[0], EchoServer.SERVER_PORT);
-	    System.out.println("Connected to " + args[0] + " on port " + EchoServer.SERVER_PORT);
+	    final Socket sock = new Socket(args[0], EchoAuthServer.SERVER_PORT);
+	    System.out.println("Connected to " + args[0] + " on port " + EchoAuthServer.SERVER_PORT);
 	    
 	    // Set up I/O streams with the server
 	    final ObjectOutputStream output = new ObjectOutputStream(sock.getOutputStream());
@@ -119,10 +119,12 @@ public class EchoClient
 	{
 	try{
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		StringBuilder str = new StringBuilder();
 		System.out.print("Username: ");
-		in.readLine();
+		str.append(in.readLine());
 		System.out.print("Password: ");
-		return in.readLine();
+		str.append(in.readLine());
+		return str.toString();
 	}
 	catch(Exception e){
 	    // Uh oh...
