@@ -1,8 +1,7 @@
 public class Token {
     public String username;
     public String password;
-    public boolean writeCreateOrDeleteFile; // true if you are a student and in your group folder. or, simply if you are
-                                            // root.
+    public boolean writeCreateOrDeleteFile; // true if you are a student and in your group folder. or, simply if you are root.
     public boolean manageUsers; // create or delete users. only true if you are root.
     public String group; // only applies to student users
 
