@@ -12,6 +12,8 @@ public class Message implements java.io.Serializable {
 
     public String token;
 
+    public Credentials creds;
+
     /**
      * Constructor.
      *
@@ -25,6 +27,10 @@ public class Message implements java.io.Serializable {
     public Message(String _msg, String _token) {
         theMessage = _msg;
         token = _token;
+    }
+
+    public Message(Credentials creds) {
+        this.creds = creds;
     }
 
 } // -- End class Message

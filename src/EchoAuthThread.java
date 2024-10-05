@@ -46,6 +46,22 @@ public class EchoAuthThread extends Thread {
 			// would call generateToken function here
 
 
+			// AUTHENTICATE LOOP
+			while (token == null){
+				Credentials information = (Credentials)input.readObject(); // reads info from client input stream and casts as message obj
+				String username = information.username;
+				String password = information.password; 
+				// got the user and pass. call authenticate on it.
+				if (authenticate(username, password)){ // if we were able to authenticate, give them a token
+					token = generateToken(username, password);
+				}
+
+			}
+
+
+
+
+
 
 
 

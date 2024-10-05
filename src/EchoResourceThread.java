@@ -78,8 +78,8 @@ public class EchoResourceThread extends Thread {
 
     // other methods
 
-    // commands: read, write, create, delete
-    // create and delete files, or create and delete users too if you're the root.
+    // commands: read, write, create, delete, list(ls)
+    // create and delete files 
 
     private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
         String request = msg.theMessage; // like "read group1_file1.txt"
