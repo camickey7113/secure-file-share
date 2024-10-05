@@ -101,3 +101,20 @@ public class EchoResourceThread extends Thread {
 
 } // -- end class EchoResourceThread
 
+
+
+
+
+
+/* handleClientRequest method takes the object output stream as a parameter because it needs to send a response back to the client. 
+client sends requests to the server through Message objects. once the server processes the request (like reading a file for ex,)
+ it may need to communicate back to the client to acknowledge that the request was received,AND
+ IT CAN SEND RESULTS OR FEEDBACK LIKE SENDING BACK FILE CONTENTS (WHAT WE WANT) or error messages
+ It enables two way communication between the server and the client.
+
+What handle request() does is processes a client's request, the line output.writeObject(new Message("file.txt")) 
+sends a new Message object (containing "file.txt") back to the client. This communication is done using the ObjectOutputStream associated with that particular client connection.
+Without passing output, the server wouldn't have a way to send responses to the client after handling their request.
+ basically, allows us to see file.txt
+*/
+
