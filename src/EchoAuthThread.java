@@ -11,7 +11,8 @@ import java.io.ObjectOutputStream; // For writing Java objects to the wire
  */
 public class EchoAuthThread extends Thread {
 	private final Socket socket; // The socket that we'll be talking over
-	private final String token;
+	// private String token;
+	private Token token;
 
 	/**
 	 * Constructor that sets up the socket we'll chat over
@@ -21,7 +22,7 @@ public class EchoAuthThread extends Thread {
 	 */
 	public EchoAuthThread(Socket _socket) {
 		socket = _socket;
-		token = "Bello";
+		// token = "Bello";
 	}
 
 	/**
@@ -38,17 +39,26 @@ public class EchoAuthThread extends Thread {
 			final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 			final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 
+
+			// authenticate the client credentials
+
+
+
+
+
+
+
 			// Loop to read messages
 			Message msg = null;
 			int count = 0;
 			do {
 				// read and print message
-				msg = (Message)input.readObject();
+				msg = (Message) input.readObject();
 				System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.theMessage);
 
 				// Write an ACK back to the sender
 				count++;
-				output.writeObject(new Message("Success", token));
+				output.writeObject(new Message("Success", token)); // uncomment token bello and private string token to run how it used to 
 
 			} while (!msg.theMessage.toUpperCase().equals("EXIT"));
 
@@ -63,5 +73,16 @@ public class EchoAuthThread extends Thread {
 		}
 
 	} // -- end run()
+
+
+	
+	private Token generateToken(String username, String password) {
+		if (username.equals("root")) {
+			return new Token(username, password, true, true, ""); // root user, no group
+		} else {
+			String group = "group1"; // i just hard coded for now, will have to fix later
+			return new Token(username, password, true, true, group); // Student with group membership
+		}
+	}
 
 } // -- end class EchoThread

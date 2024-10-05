@@ -56,7 +56,7 @@ public class EchoResourceThread extends Thread {
 
 
 
-                // Write ackknowledgement back to sender
+                // Write ackknowledgement back to sender // i want to ask him about this part why he had it there 
                 count++;
                 output.writeObject(new Message("file.txt"));
 
@@ -68,7 +68,7 @@ public class EchoResourceThread extends Thread {
             socket.close();
 
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage()); 
             e.printStackTrace(System.err);
         }
 
@@ -100,3 +100,4 @@ public class EchoResourceThread extends Thread {
 
 
 } // -- end class EchoResourceThread
+
