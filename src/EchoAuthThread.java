@@ -41,6 +41,9 @@ public class EchoAuthThread extends Thread {
 
 
 			// authenticate the client credentials
+			// would call authenticate function here 
+			// authenticate would check if the user name and password pair match in the data base?
+			// would call generateToken function here
 
 
 
@@ -78,10 +81,10 @@ public class EchoAuthThread extends Thread {
 	
 	private Token generateToken(String username, String password) {
 		if (username.equals("root")) {
-			return new Token(username, password, true, true, ""); // root user, no group
+			return new Token(username, password, true, true, null); // root user, no group
 		} else {
 			String group = "group1"; // i just hard coded for now, will have to fix later
-			return new Token(username, password, true, true, group); // Student with group membership
+			return new Token(username, password, true, true, group); // student with group
 		}
 	}
 
