@@ -25,6 +25,9 @@ public class EchoAuthServer {
 			// A simple infinite loop to accept connections
 			Socket sock = null;
 			EchoAuthThread thread = null;
+
+
+			/// create root and test users 
 			while (true) {
 				sock = serverSock.accept(); // Accept an incoming connection
 				thread = new EchoAuthThread(sock); // Create a thread to handle this connection

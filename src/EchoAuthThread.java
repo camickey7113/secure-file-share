@@ -97,10 +97,10 @@ public class EchoAuthThread extends Thread {
 	
 	private Token generateToken(String username, String password) {
 		if (username.equals("root")) {
-			return new Token(username, password, true, true, null); // root user, no group
+			return new Token(username, password, null); // root user, no group
 		} else {
 			String group = "group1"; // i just hard coded for now, will have to fix later
-			return new Token(username, password, true, true, group); // student with group
+			return new Token(username, password, group); // student with group
 		}
 	}
 
