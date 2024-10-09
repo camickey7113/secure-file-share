@@ -11,7 +11,7 @@ import java.net.Socket;        // Incoming connections are represented as socket
 public class EchoResourceServer
 {
     /** The server will listen on this port for client connections */
-    public static final int SERVER_PORT = 8765;
+    //public static final int SERVER_PORT = 8765;
 
     /**
      * Main routine.  Just a dumb loop that keeps accepting new
@@ -22,13 +22,14 @@ public class EchoResourceServer
     {
 	try{
 	    // This is basically just listens for new client connections
-	    final ServerSocket serverSock = new ServerSocket(SERVER_PORT);
+	    final ServerSocket serverSock = new ServerSocket(EchoAuthServer.SERVER_PORT);
 	    
 	    // A simple infinite loop to accept connections
 	    Socket sock = null;
 	    EchoThread thread = null;
 	    while(true){
 		sock = serverSock.accept();     // Accept an incoming connection
+		System.out.println("Connection Accepted");
 		thread = new EchoThread(sock);  // Create a thread to handle this connection
 		thread.start();                 // Fork the thread
 	    }                                   // Loop to work on new connections while this

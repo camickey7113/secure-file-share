@@ -3,7 +3,7 @@ import java.io.ObjectInputStream;   // Used to read objects sent from the server
 import java.io.ObjectOutputStream;  // Used to write objects to the server
 import java.io.BufferedReader;      // Needed to read from the console
 import java.io.InputStreamReader;   // Needed to read from the console
-
+import java.util.Scanner;
 /**
  * Simple client class.  This class connects to an EchoServer to send
  * text back and forth.  Java message serialization is used to pass
@@ -23,6 +23,8 @@ public class EchoClient
      */
     public static void main(String[] args)
     {
+		Scanner scanner = new Scanner(System.in);
+		int CLIENT_PORT = 0;
 	// Error checking for arguments
 	if(args.length != 1)
 	    {
@@ -33,8 +35,11 @@ public class EchoClient
 
 	try{
 	    // Connect to the specified server
-	    final Socket sock = new Socket(args[0], EchoAuthServer.SERVER_PORT);
-	    System.out.println("Connected to " + args[0] + " on port " + EchoAuthServer.SERVER_PORT);
+		System.out.println("Specify with authentication server port you want to connect to: ");
+		CLIENT_PORT = scanner.nextInt();
+	    final Socket sock = new Socket(args[0], CLIENT_PORT);
+		
+	    System.out.println("Connected to " + args[0] + " on port " + CLIENT_PORT);
 	    
 	    // Set up I/O streams with the server
 	    final ObjectOutputStream output = new ObjectOutputStream(sock.getOutputStream());
@@ -59,7 +64,7 @@ public class EchoClient
 				// explicitly cast the return from readObject() to the
 				// type Message.
 				token = (Message)input.readObject();
-				System.out.println("\nServer says: " + token.theMessage + "\n" + "Token: " + token.token);
+				//System.out.println("\nServer says: " + token.theMessage + "\n" + "Token: " + token.token);
 				if(token != null) break;
 			}
 
