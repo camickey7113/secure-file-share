@@ -1,5 +1,6 @@
 import java.lang.Thread; // We will extend Java's base Thread class
 import java.net.Socket;
+import java.util.ArrayList;
 import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
 
@@ -14,15 +15,18 @@ public class EchoAuthThread extends Thread {
 	// private String token;
 	private Token token;
 
+	private final ArrayList<User> userList;
+
 	/**
 	 * Constructor that sets up the socket we'll chat over
 	 *
 	 * @param _socket The socket passed in from the server
 	 *
 	 */
-	public EchoAuthThread(Socket _socket) {
+	public EchoAuthThread(Socket _socket, ArrayList<User> _userList) {
 		socket = _socket;
 		// token = "Bello";
+		userList = _userList;
 	}
 
 	/**
@@ -59,14 +63,6 @@ public class EchoAuthThread extends Thread {
 			}
 
 
-
-
-
-
-
-
-
-
 			// Loop to read messages
 			Message msg = null;
 			int count = 0;
@@ -78,6 +74,7 @@ public class EchoAuthThread extends Thread {
 				// Write an ACK back to the sender
 				count++;
 				output.writeObject(new Message("Success", token)); // uncomment token bello and private string token to run how it used to 
+				// when we generate a token, this will work
 
 			} while (!msg.theMessage.toUpperCase().equals("EXIT"));
 
@@ -103,5 +100,30 @@ public class EchoAuthThread extends Thread {
 			return new Token(username, password, group); // student with group
 		}
 	}
+
+	private boolean authenticate(String username, String password){
+		for (User user: userList){
+			if (user.username.equals(username) && user.password.equals(password)){
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+
+
+	private User createUser(String username, String password) { // will be for the root's purpose of creating ppl
+
+		// make sure a username doesnt already exist
+		for (User user : userList){
+			if (user.username.equals(username)){
+				System.out.println(username + " already exists.");
+				return null;
+			}
+		}
+
+        return new User(username, password);
+    }
 
 } // -- end class EchoThread
