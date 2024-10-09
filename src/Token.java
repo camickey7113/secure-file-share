@@ -1,4 +1,6 @@
-public class Token {
+import java.io.Serializable;
+
+public class Token implements Serializable {
     public String username;
     public String password;
     public String group; // only applies to student users

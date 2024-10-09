@@ -6,13 +6,15 @@
  * @author Adam J. Lee (adamlee@cs.pitt.edu)
  *
  */
-public class Message implements java.io.Serializable {
+
+
+import java.io.Serializable;
+
+public class Message implements Serializable {
     /** The text string encoded in this Message object */
     public String theMessage;
 
-    public String token;
-
-    public Credentials creds;
+    public Token token;
 
     /**
      * Constructor.
@@ -24,13 +26,10 @@ public class Message implements java.io.Serializable {
         theMessage = _msg;
     }
 
-    public Message(String _msg, String _token) {
+    public Message(String _msg, Token _token) {
         theMessage = _msg;
         token = _token;
     }
 
-    public Message(Credentials creds) {
-        this.creds = creds;
-    }
 
 } // -- End class Message

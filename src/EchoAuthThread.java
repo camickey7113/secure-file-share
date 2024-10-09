@@ -12,9 +12,6 @@ import java.io.ObjectOutputStream; // For writing Java objects to the wire
  */
 public class EchoAuthThread extends Thread {
 	private final Socket socket; // The socket that we'll be talking over
-	// private String token;
-	private Token token;
-
 	private final ArrayList<User> userList;
 
 	/**
@@ -23,10 +20,9 @@ public class EchoAuthThread extends Thread {
 	 * @param _socket The socket passed in from the server
 	 *
 	 */
-	public EchoAuthThread(Socket _socket, ArrayList<User> _userList) {
-		socket = _socket;
-		// token = "Bello";
-		userList = _userList;
+	public EchoAuthThread(Socket socket, ArrayList<User> userList) {
+		this.socket = socket;
+		this.userList = userList;
 	}
 
 	/**
@@ -44,26 +40,34 @@ public class EchoAuthThread extends Thread {
 			final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 
 
-			// authenticate the client credentials
-			// would call authenticate function here 
-			// authenticate would check if the user name and password pair match in the data base?
-			// would call generateToken function here
-
-
+			Token token = null;
 			// AUTHENTICATE LOOP
 			while (token == null){
-				Credentials information = (Credentials)input.readObject(); // reads info from client input stream and casts as message obj
-				String username = information.username;
-				String password = information.password; 
+
+				// get username
+				Message usernameMsg = (Message)input.readObject(); 
+				String username = usernameMsg.theMessage;
+				System.out.println("Received username: " + username);
+
+				// get password
+				Message passwordMsg = (Message) input.readObject();
+            	String password = passwordMsg.theMessage;
+            	System.out.println("Received password: " + password);
+
+
 				// got the user and pass. call authenticate on it.
 				if (authenticate(username, password)){ // if we were able to authenticate, give them a token
 					token = generateToken(username, password);
+					output.writeObject(new Message("Authentication successful", token));  // send token back to client
 				}
+				else {
+					output.writeObject(new Message("Authentication failed, try again"));  // Failed authentication response
+            	}
 
 			}
 
 
-			// Loop to read messages
+			// proceed to regular message handling after user logs in
 			Message msg = null;
 			int count = 0;
 			do {
@@ -73,8 +77,8 @@ public class EchoAuthThread extends Thread {
 
 				// Write an ACK back to the sender
 				count++;
-				output.writeObject(new Message("Success", token)); // uncomment token bello and private string token to run how it used to 
-				// when we generate a token, this will work
+				output.writeObject(new Message("Message received: " + msg.theMessage));
+				// in the future, we will 
 
 			} while (!msg.theMessage.toUpperCase().equals("EXIT"));
 
@@ -113,17 +117,20 @@ public class EchoAuthThread extends Thread {
 
 
 
-	private User createUser(String username, String password) { // will be for the root's purpose of creating ppl
+	private boolean createUser(String username, String password) { // will be for the root's purpose of creating ppl
 
 		// make sure a username doesnt already exist
 		for (User user : userList){
 			if (user.username.equals(username)){
 				System.out.println(username + " already exists.");
-				return null;
+				return false;
 			}
 		}
 
-        return new User(username, password);
+        User newUser =  new User(username, password);
+		userList.add(newUser);
+		return true;
+
     }
 
-} // -- end class EchoThread
+} // -- end class EchoAuthThread
