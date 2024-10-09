@@ -1,5 +1,6 @@
 import java.net.ServerSocket;  // The server uses this to bind to a port
 import java.net.Socket;        // Incoming connections are represented as sockets
+import java.util.Scanner;
 
 /**
  * A simple server class.  Accepts client connections and forks
@@ -10,8 +11,9 @@ import java.net.Socket;        // Incoming connections are represented as socket
  */
 public class EchoAuthServer
 {
+	
     /** The server will listen on this port for client connections */
-    public static final int SERVER_PORT = 8765;
+    public static int SERVER_PORT = 0;
 
     /**
      * Main routine.  Just a dumb loop that keeps accepting new
@@ -20,7 +22,11 @@ public class EchoAuthServer
      */
     public static void main(String[] args)
     {
+		Scanner scanner = new Scanner(System.in);
 	try{
+		System.out.println("Specify which port you want to bind to: ");
+		SERVER_PORT = scanner.nextInt();
+		
 	    // This is basically just listens for new client connections
 	    final ServerSocket serverSock = new ServerSocket(SERVER_PORT);
 	    

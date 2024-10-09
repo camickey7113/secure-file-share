@@ -33,15 +33,15 @@ public class EchoClient
 
 	try{
 	    // Connect to the specified server
-	    final Socket sock = new Socket(args[0], EchoServer.SERVER_PORT);
-	    System.out.println("Connected to " + args[0] + " on port " + EchoServer.SERVER_PORT);
+	    final Socket sock = new Socket(args[0], EchoAuthServer.SERVER_PORT);
+	    System.out.println("Connected to " + args[0] + " on port " + EchoAuthServer.SERVER_PORT);
 	    
 	    // Set up I/O streams with the server
 	    final ObjectOutputStream output = new ObjectOutputStream(sock.getOutputStream());
 	    final ObjectInputStream input = new ObjectInputStream(sock.getInputStream());
 
 	    // loop to send messages
-	    Message msg = null, resp = null;
+	    Message msg = null, resp = null, token = null;
 	    do {
 			while(true){
 				// Read and send message.  Since the Message class
@@ -58,10 +58,28 @@ public class EchoClient
 				// encode it as a Message.  Note that we need to
 				// explicitly cast the return from readObject() to the
 				// type Message.
-				resp = (Message)input.readObject();
-				//System.out.println("\nServer says: " + resp.theMessage + "\n");
-				if(resp) break;
+				token = (Message)input.readObject();
+				System.out.println("\nServer says: " + token.theMessage + "\n" + "Token: " + token.token);
+				if(token != null) break;
 			}
+
+			do{
+				// Read and send message.  Since the Message class
+				// implements the Serializable interface, the
+				// ObjectOutputStream "output" object automatically
+				// encodes the Message object into a format that can
+				// be transmitted over the socket to the server.
+				msg = new Message(readSomeText());
+				output.writeObject(msg);
+
+				// Get ACK and print.  Since Message implements
+				// Serializable, the ObjectInputStream can
+				// automatically read this object off of the wire and
+				// encode it as a Message.  Note that we need to
+				// explicitly cast the return from readObject() to the
+				// type Message.
+				resp = (Message)input.readObject();
+			}while(!msg.theMessage.toUpperCase().equals("LOGOUT"));
 
 	    } while(!msg.theMessage.toUpperCase().equals("EXIT"));
 	    
@@ -101,10 +119,12 @@ public class EchoClient
 	{
 	try{
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		StringBuilder str = new StringBuilder();
 		System.out.print("Username: ");
-		in.readLine();
+		str.append(in.readLine());
 		System.out.print("Password: ");
-		return in.readLine();
+		str.append(in.readLine());
+		return str.toString();
 	}
 	catch(Exception e){
 	    // Uh oh...
