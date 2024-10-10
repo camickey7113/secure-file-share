@@ -1,9 +1,9 @@
 
-import java.net.Socket; // Used to connect to the server
-import java.io.ObjectInputStream; // Used to read objects sent from the server
-import java.io.ObjectOutputStream; // Used to write objects to the server
-import java.io.BufferedReader; // Needed to read from the console
-import java.io.InputStreamReader; // Needed to read from the console
+import java.io.BufferedReader; // Used to connect to the server
+import java.io.InputStreamReader; // Used to read objects sent from the server
+import java.io.ObjectInputStream; // Used to write objects to the server
+import java.io.ObjectOutputStream; // Needed to read from the console
+import java.net.Socket; // Needed to read from the console
 
 /**
  * - Simple client class. This class connects to an EchoServer to send
@@ -47,11 +47,8 @@ public class EchoClient {
 					// ObjectOutputStream "output" object automatically
 					// encodes the Message object into a format that can
 					// be transmitted over the socket to the server.
-					msg = new Message(readSomeText());
-					output.writeObject(msg);
-					msg = new Message(readSomeText());
-					output.writeObject(msg);
-
+					User possible = readCredentials();
+					output.writeObject(possible);
 					// Get ACK and print. Since Message implements
 					// Serializable, the ObjectInputStream can
 					// automatically read this object off of the wire and
@@ -111,18 +108,20 @@ public class EchoClient {
 
 	} // -- end readSomeText()
 
-	private static String readCredentials() {
+	private static User readCredentials() {
 		try {
 			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-			StringBuilder str = new StringBuilder();
-			System.out.print("Username: ");
-			str.append(in.readLine());
-			System.out.print("Password: ");
-			str.append(in.readLine());
-			return str.toString();
+			System.out.println("Username: ");
+			String username = in.readLine();
+			System.out.println("Password: ");
+			String password = in.readLine();
+			System.out.println();
+			return new User(username, password);
 		} catch (Exception e) {
 			// Uh oh...
-			return "";
+			System.err.println("error reading in username or password");
+			System.exit(1);
+			return null;
 		}
 	}
 

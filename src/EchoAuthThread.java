@@ -1,8 +1,7 @@
-import java.lang.Thread; // We will extend Java's base Thread class
+import java.io.ObjectInputStream; // We will extend Java's base Thread class
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.io.ObjectInputStream; // For reading Java objects off of the wire
-import java.io.ObjectOutputStream; // For writing Java objects to the wire
+import java.util.ArrayList; // For reading Java objects off of the wire
 
 /**
  * A simple server thread. This class just echoes the messages sent
@@ -44,14 +43,12 @@ public class EchoAuthThread extends Thread {
 			// AUTHENTICATE LOOP
 			while (token == null){
 
-				// get username
-				Message usernameMsg = (Message)input.readObject(); 
-				String username = usernameMsg.theMessage;
-				System.out.println("Received username: " + username);
+				// retrieve user object from the client
 
-				// get password
-				Message passwordMsg = (Message) input.readObject();
-            	String password = passwordMsg.theMessage;
+				User authAttempt = (User)input.readObject();
+				String username = authAttempt.username;
+				String password = authAttempt.password;
+				System.out.println("Received username: " + username);
             	System.out.println("Received password: " + password);
 
 
