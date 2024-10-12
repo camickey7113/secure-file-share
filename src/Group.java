@@ -1,6 +1,6 @@
 import java.util.*;
 
-public class Group {
+public class Group implements java.io.Serializable {
     String name;
 
     ArrayList<User> userList;

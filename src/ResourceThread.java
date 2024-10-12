@@ -31,7 +31,7 @@ public class ResourceThread extends Thread {
             
             // Print incoming message
             do {
-                msg = new Message("Bello");
+                //msg = new Message("Bello");
             }
             while (!msg.getCommand().equals("logout"));
 
