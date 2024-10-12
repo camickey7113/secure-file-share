@@ -1,36 +1,48 @@
-/**
- * Very stupid-simple message class. By implementing the Serializble
- * interface, objects of this class can be serialized automatically by
- * Java to be sent across IO streams.
- *
- * @author Adam J. Lee (adamlee@cs.pitt.edu)
- *
- */
+import java.util.*;
+
+
 public class Message implements java.io.Serializable {
-    /** The text string encoded in this Message object */
-    public String theMessage;
-
-    public String token;
-
-    public Credentials creds;
-
-    /**
-     * Constructor.
-     *
-     * @param _msg The string to be encoded in this Message object
-     *
-     */
-    public Message(String _msg) {
-        theMessage = _msg;
+    private String command;
+    private ArrayList<Object> stuff;
+    
+    // Message Constructors
+    public Message(String cmd){
+        command = cmd;
+        stuff = new ArrayList<Object>();
+    }
+    public Message(ArrayList<Object> stuff){
+        this.stuff = stuff;
+        command = null;
+    }
+    public Message(String cmd, ArrayList<Object> stuff){
+        command = cmd;
+        this.stuff = stuff;
     }
 
-    public Message(String _msg, String _token) {
-        theMessage = _msg;
-        token = _token;
+    // Getters
+    public String getCommand(){
+        return command;
+    }
+    public ArrayList<Object> getStuff(){
+        return stuff;
     }
 
-    public Message(Credentials creds) {
-        this.creds = creds;
+    //Setters
+    public boolean setCommand(String cmd){
+        command = cmd;
+        return false;
+    }
+    
+    public boolean addStuff(Object item){
+        return stuff.add(item);
+    }
+    
+    public boolean removeItem(Object item){
+        return stuff.remove(item);
+    }
+    
+    public void removeAll(){
+        stuff.clear();
     }
 
-} // -- End class Message
+}

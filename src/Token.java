@@ -1,24 +1,18 @@
-public class Token {
-    public String username;
-    public String password;
-    public String group; // only applies to student users
+import java.util.*;
 
+public class Token implements java.io.Serializable {
 
+	private String group;
 
-    public Token(String username, String password, String group) {
-        this.username = username;
-        this.password = password;
-    
+	public Token(String group) {
+		this.group = group;
+	}
 
+	public String getGroup() {
+		return this.group;
+	}
 
-        // set group to null if the user is root. 
-        if (username.equals("root")){
-            this.group = null; // root user, no group 
-        }
-        else{
-            this.group = group; //student 
-        }
-
-    }
-
+	public void setGroup(String group) {
+		this.group = group;
+	}	
 }
