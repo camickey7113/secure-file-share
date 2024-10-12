@@ -33,13 +33,13 @@ public class EchoAuthServer {
 			EchoAuthThread thread = null;
 
 
-			/// create root and a few dummies
+			/// create root and a few dummies for testing
 			ArrayList<User> userList = new ArrayList<>();
-			userList.add(new User("root", "root")); 
-            userList.add(new User("user1", "pass1")); 
-            userList.add(new User("user2", "pass2"));
-			userList.add(new User("user3", "pass1")); 
-            userList.add(new User("user4", "pass2"));
+			userList.add(new User("root", "root", null)); 
+            userList.add(new User("user1", "pass1", "group1")); 
+            userList.add(new User("user2", "pass2", "group1"));
+			userList.add(new User("user3", "pass1", "group2")); 
+            userList.add(new User("user4", "pass2", "group2"));
 			
 
 			while (true) {

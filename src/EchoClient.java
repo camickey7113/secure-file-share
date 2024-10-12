@@ -116,7 +116,7 @@ public class EchoClient {
 			System.out.println("Password: ");
 			String password = in.readLine();
 			System.out.println();
-			return new User(username, password);
+			return new User(username, password, null);
 		} catch (Exception e) {
 			// Uh oh...
 			System.err.println("error reading in username or password");

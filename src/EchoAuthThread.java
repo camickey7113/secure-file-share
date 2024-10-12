@@ -24,6 +24,7 @@ public class EchoAuthThread extends Thread {
 		this.userList = userList;
 	}
 
+
 	/**
 	 * run() is basically the main method of a thread. This thread
 	 * simply reads Message objects off of the socket.
@@ -45,16 +46,12 @@ public class EchoAuthThread extends Thread {
 
 				// retrieve user object from the client
 
-				User authAttempt = (User)input.readObject();
-				String username = authAttempt.username;
-				String password = authAttempt.password;
-				System.out.println("Received username: " + username);
-            	System.out.println("Received password: " + password);
+				User authAttempt = retrieveLogin(input);
 
 
 				// got the user and pass. call authenticate on it.
-				if (authenticate(username, password)){ // if we were able to authenticate, give them a token
-					token = generateToken(username, password);
+				if (authenticate(authAttempt, userList)){ // if we were able to authenticate, give them a token
+					token = generateToken(authAttempt.username, authAttempt.password, authAttempt.group);
 					output.writeObject(new Message("Authentication successful", token));  // send token back to client
 				}
 				else {
@@ -92,30 +89,55 @@ public class EchoAuthThread extends Thread {
 	} // -- end run()
 
 
+
+	//helper methods --------------------------------------------------------------------------------------------------------------------------------------
 	
-	private Token generateToken(String username, String password) {
+
+	//generates a "token" based on the user's information
+	private Token generateToken(String username, String password, String group) {
 		if (username.equals("root")) {
 			return new Token(username, password, null); // root user, no group
 		} else {
-			String group = "group1"; // i just hard coded for now, will have to fix later
 			return new Token(username, password, group); // student with group
 		}
 	}
 
-	private boolean authenticate(String username, String password){
-		for (User user: userList){
-			if (user.username.equals(username) && user.password.equals(password)){
-				return true;
-			}
+	private boolean authenticate(User possUser, ArrayList<User> userList){
+		return userList.contains(possUser);
+	}
+
+	private User retrieveLogin(ObjectInputStream input){
+		try{
+			User authAttempt = (User)input.readObject();
+			System.out.println("Received username: " + authAttempt.username);
+        	System.out.println("Received password: " + authAttempt.password);
+			return authAttempt;
+		} catch (Exception e) {
+			System.err.println("Error retrieving login information");
 		}
-		return false;
+		return null;
 	}
 
 
 
+	private boolean createUser(String username, String password, String group) { // will be for the root's purpose of creating ppl
 
-	private boolean createUser(String username, String password) { // will be for the root's purpose of creating ppl
-
+		/* 
+		 * When we actually add the user to the userlist, we need to:
+		 * 	lock access to the file to synchronize 
+		 * 	update our local copy of the list in the thread
+		 * 	check for users that have that username
+		 * 	update the file
+		 * 	unlock the file
+		 * 
+		 * If we dont do this in this order, then race conditions :(
+		 * The alternative is that every time we edit the file, 
+		 * we manually insert the user in order, which seems like 
+		 * a total pain in the ass. It should be way easier to just
+		 * synchronize and overwrite the whole thing every time, even with
+		 * hundreds of users (I think)
+		 * 
+		 */
 		// make sure a username doesnt already exist
 		for (User user : userList){
 			if (user.username.equals(username)){
@@ -124,7 +146,8 @@ public class EchoAuthThread extends Thread {
 			}
 		}
 
-        User newUser =  new User(username, password);
+		//add it if it doesn't
+        User newUser =  new User(username, password, group);
 		userList.add(newUser);
 		return true;
 
