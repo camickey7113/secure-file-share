@@ -45,7 +45,7 @@ public class AuthThread extends Thread
             // Write an ACK back to the sender
             count++;
             ArrayList<Object> list = new ArrayList<Object>();
-            list.add("Bello! (not hardcoded)");
+            list.add(new User("user1", "pass1", "group1"));
             output.writeObject(new Message("Received message #" + count, list));
 
             } while(!msg.getCommand().toUpperCase().equals("EXIT"));

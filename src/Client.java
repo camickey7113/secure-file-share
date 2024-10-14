@@ -3,93 +3,201 @@ import java.io.ObjectInputStream;   // Used to read objects sent from the server
 import java.io.ObjectOutputStream;  // Used to write objects to the server
 import java.io.BufferedReader;      // Needed to read from the console
 import java.io.InputStreamReader;   // Needed to read from the console
+import java.io.ObjectInput;
 import java.util.*;
 
 public class Client
 {
     // Set up I/O streams with the Auth server
-	ObjectOutputStream authOutput;
-	ObjectInputStream authInput;
+	public static ObjectOutputStream authOutput;
+	public static ObjectInputStream authInput;
     // Set up I/O streams with the Resource server
-	ObjectOutputStream resourceOutput;
-	ObjectInputStream resourceInput;
+	public static ObjectOutputStream resourceOutput;
+	public static ObjectInputStream resourceInput;
     // Port numbers for each server
-    int ResourcePortNumber;
-    int AuthPortNumber;
+    public static int ResourcePortNumber;
+    public static int AuthPortNumber;
 
-    public boolean connectToAuthServer(int port, String ip) {
-        return false;
+    public static Socket authSock;
+    public static Socket resourceSock;
+
+    public static String AuthIP;
+    public static String ResourceIP;
+    // Current user
+    private static User currentUser;
+    public static Scanner scanner = new Scanner (System.in);
+    
+    
+    public static boolean connectToAuthServer() {
+        System.out.println("Enter authentication server name: ");
+        AuthIP = scanner.next();
+        System.out.println("Enter authentication server port: ");
+        AuthPortNumber = scanner.nextInt();
+        try {
+            authSock = new Socket(AuthIP, AuthPortNumber);
+        } catch (Exception e) {
+            System.out.println("Port connection failed\nlog: " + AuthIP + " : " + AuthPortNumber);
+        }
+        
+        System.out.println("Connected to " + AuthIP + " on port " + AuthPortNumber);
+        
+        try {
+            // Set up I/O streams with the server
+            authOutput = new ObjectOutputStream(authSock.getOutputStream());
+            authInput = new ObjectInputStream(authSock.getInputStream());
+        } catch (Exception e) {
+            System.out.println("I/O failed");
+            return false;
+        
+        }
+        System.out.println("Successful connection to Authentication Server");
+        return true;
     }
 
-    public boolean connectToResourceServer(int port, String ip) {
-        return false;
+    public static boolean connectToResourceServer() {
+        System.out.println("Enter resource IP address");
+        ResourceIP = scanner.next();
+        System.out.println("Enter resource server port: ");
+        ResourcePortNumber = scanner.nextInt();
+        try {
+            resourceSock = new Socket(ResourceIP, ResourcePortNumber);
+        } catch (Exception e) {
+            System.out.println("Port connection failed\nlog: " + ResourceIP + " : " + ResourcePortNumber);
+        }
+        System.out.println("Connected to " + ResourceIP + " on port " + ResourcePortNumber);
+        
+        // Set up I/O streams with the server
+        try {
+            resourceOutput = new ObjectOutputStream(resourceSock.getOutputStream());
+            resourceInput = new ObjectInputStream(resourceSock.getInputStream());
+        } catch (Exception e) {
+            System.out.println("I/O failed");
+        }
+        
+        System.out.println("Successful connection to Resource Server");
+        return true;
     }
 
-    public Token verifyUser(String User) {
-        return null;
+    // returns a Token given a 
+    public static Token verifyUser(User User) {
+        Token t = null;
+        // construct list with user
+        ArrayList<Object> list = new ArrayList<Object>();
+        list.add(currentUser);
+        // send user to AS for verification 
+        // receive response
+        try {
+            authOutput.writeObject(new Message("verify", list));
+            t = (Token) ((Message) authInput.readObject()).getStuff().get(0);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        
+        // if response is null, user was deleted
+        if (t == null) {
+            System.out.println("User no longer exists!");
+        }
+        // return user token
+        return t;
     }
 
     public boolean handleCommand(String command, Token token) {
-        return false;
+        
+        if(command.equals("exit")){
+            //close connections
+            System.exit(0);
+            return false;
+        }
+        else if(token.getUser().equals("root")){
+            return sendCommand(command, token, authOutput);
+        } else {
+            return sendCommand(command, token, resourceOutput);
+        }
     }
 
-    private boolean sendRootCommand(String command, Token token) {
-        return false;
+    private boolean sendCommand(String command, Token token, ObjectOutputStream serverstream) {
+        try{
+            ArrayList<Object> wrap = new ArrayList<Object>();
+            wrap.add(token);
+            Message newcommand = new Message(command, wrap);
+            serverstream.writeObject(newcommand);
+            return true;
+        } catch (Exception e){
+            System.err.println("Failed to send command with exception: " + e.getMessage());
+            return false;
+        }
     }
 
-    private boolean sendResourceCommand(String command, Token token) {
-        return false;
+    // Prompts the user for a username and password
+    // Upon successful login, returns a User object
+    public static User login() {
+        User potentialUser = null;
+        // loop until a User is returned
+        do {
+            // construct list with user
+            ArrayList<Object> list = new ArrayList<Object>();
+            list.add(readCredentials());
+            // send user to AS for verification 
+            // receive response
+            try {
+                authOutput.writeObject(new Message("verify", list));
+                potentialUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        } while (potentialUser == null);
+        return potentialUser;
     }
 
     public static void main(String[] args) {
+        // connect to auth server
+        // connect to user server
+        if(connectToAuthServer() && connectToResourceServer()) {
+            System.out.println("Success!");
+        }
+        else {
+            System.out.println("Error connecting to servers");
+        }
+
+        // login user
+        try {
+            currentUser = login();
+        } catch (Exception e) {
+            System.out.println("login unsuccessful");
+        }
+
+        System.out.println(currentUser.getUsername());
+        
+        // loop to accept commands
+            // authenticate user
+            // input command
+            // break if logout
+            // send command
+            // receive response
+            // output response
+        
+        // logout
+
         // Error checking for arguments
-        if(args.length != 1)
-            {
-            System.err.println("Not enough arguments.\n");
-            System.err.println("Usage:  java EchoClient <Server name or IP>\n");
-            System.exit(-1);
-            }
+
+    
+        // if(args.length != 1)
+        //     {
+        //     System.err.println("Not enough arguments.\n");
+        //     System.err.println("Usage: java EchoClient <Server name or IP>\n");
+        //     System.exit(-1);
+        //     }
+        Message msg;
 
         try {
-            // Connect to the specified server
-            final Socket sock = new Socket(args[0], AuthServer.SERVER_PORT);
-            System.out.println("Connected to " + args[0] + " on port " + AuthServer.SERVER_PORT);
-            
-            // Set up I/O streams with the server
-            final ObjectOutputStream output = new ObjectOutputStream(sock.getOutputStream());
-            final ObjectInputStream input = new ObjectInputStream(sock.getInputStream());
-
-            // loop to send messages
-            Message msg = null, resp = null;
-            do {
-                while(true){
-                    // Read and send message.  Since the Message class
-                    // implements the Serializable interface, the
-                    // ObjectOutputStream "output" object automatically
-                    // encodes the Message object into a format that can
-                    // be transmitted over the socket to the server.
-                    msg = new Message("login", readCredentials());
-                    output.writeObject(msg);
-
-                    // Get ACK and print.  Since Message implements
-                    // Serializable, the ObjectInputStream can
-                    // automatically read this object off of the wire and
-                    // encode it as a Message.  Note that we need to
-                    // explicitly cast the return from readObject() to the
-                    // type Message.
-                    resp = (Message)input.readObject();
-                    System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
-                    if(resp != null) break;
-                }
-
                 do {
                     // Read and send message.  Since the Message class
                     // implements the Serializable interface, the
                     // ObjectOutputStream "output" object automatically
                     // encodes the Message object into a format that can
                     // be transmitted over the socket to the server.
-                    msg = new Message("oh noo", readSomeText());
-                    output.writeObject(msg);
+                    msg = new Message("message to resource server", readSomeText());
+                    resourceOutput.writeObject(msg);
 
                     // Get ACK and print.  Since Message implements
                     // Serializable, the ObjectInputStream can
@@ -97,21 +205,26 @@ public class Client
                     // encode it as a Message.  Note that we need to
                     // explicitly cast the return from readObject() to the
                     // type Message.
-                    resp = (Message)input.readObject();
+                    Message resp = (Message)(resourceInput).readObject();
+                    System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
                 } while(!msg.getCommand().toUpperCase().equals("LOGOUT"));
 
-            } while(!msg.getCommand().toUpperCase().equals("EXIT"));
+            } catch (Exception e) {
+                System.out.println("invalid resource command");
+            }
             
             // shut things down
-            sock.close();
-        }
+            //authSock.close();
+        
 
-        catch(Exception e){
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace(System.err);
-        }
+        // catch(Exception e){
+        //     System.err.println("Error: " + e.getMessage());
+        //     e.printStackTrace(System.err);
+        // }
 
-    } //-- end main(String[]) -----------------------------------------------------
+    }
+    
+     //-- end main(String[]) -----------------------------------------------------
 
     /**
      * Simple method to print a prompt and read a line of text.
@@ -125,7 +238,6 @@ public class Client
             System.out.print(" > ");	
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             String test = in.readLine();
-            
             ArrayList<Object> list = new ArrayList<Object>();
             list.add(test);
             return list;
@@ -137,7 +249,8 @@ public class Client
 
     } //-- end readSomeText()
 
-    private static ArrayList<Object> readCredentials()
+    // returns a User object constructed from the username and password inputted
+    private static User readCredentials()
     {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -147,15 +260,11 @@ public class Client
             System.out.print("Password: ");
             String password = in.readLine();
             
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add(new User(username, password, null));
-            return list;
+            return new User(username, password, null);
         }
         catch(Exception e){
             // Uh oh...
             return null;
         }
     }
-
-        
 }

@@ -5,7 +5,7 @@ import java.io.File;
 
 public class ResourceServer {
     // port the server will use to connect
-    public static final int SERVER_PORT = 8765;
+    public static final int SERVER_PORT = 8766;
     // map of groups and files that each owns
     HashMap<Group, FileList> fileList;
 

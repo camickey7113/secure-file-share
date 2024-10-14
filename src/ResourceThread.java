@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.io.IOException;
 import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
+import java.util.*;
 
 public class ResourceThread extends Thread {
     private ResourceServer server;
@@ -28,10 +29,26 @@ public class ResourceThread extends Thread {
      */
     public void run() {
         try {
-            
             // Print incoming message
+            System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
+
+            // set up I/O streams with the client
+            final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+            final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+
+            // Loop to read messages
+            Message msg = null;
+            int count = 0;
             do {
-                //msg = new Message("Bello");
+            // read and print message
+            msg = (Message)input.readObject();
+            System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
+
+            // Write an ACK back to the sender
+            count++;
+            ArrayList<Object> list = new ArrayList<Object>();
+            list.add("Bello! (not hardcoded and from resource server!!!)");
+            output.writeObject(new Message("Received message #" + count, list));
             }
             while (!msg.getCommand().equals("logout"));
 

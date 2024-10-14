@@ -29,7 +29,7 @@ public class Message implements java.io.Serializable {
         return stuff;
     }
 
-    //Setters
+    // Setters
     public boolean setCommand(String cmd) {
         this.command = cmd;
         return false;
