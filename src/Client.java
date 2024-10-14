@@ -9,22 +9,23 @@ import java.util.*;
 public class Client
 {
     // Set up I/O streams with the Auth server
-	public static ObjectOutputStream authOutput;
-	public static ObjectInputStream authInput;
+	private static ObjectOutputStream authOutput;
+	private static ObjectInputStream authInput;
     // Set up I/O streams with the Resource server
-	public static ObjectOutputStream resourceOutput;
-	public static ObjectInputStream resourceInput;
+	private static ObjectOutputStream resourceOutput;
+	private static ObjectInputStream resourceInput;
     // Port numbers for each server
-    public static int ResourcePortNumber;
-    public static int AuthPortNumber;
-
-    public static Socket authSock;
-    public static Socket resourceSock;
-
-    public static String AuthIP;
-    public static String ResourceIP;
+    private static int ResourcePortNumber;
+    private static int AuthPortNumber;
+    // Sockets for AS and RS
+    private static Socket authSock;
+    private static Socket resourceSock;
+    // names of IP addresses to connect to
+    private static String AuthIP;
+    private static String ResourceIP;
     // Current user
     private static User currentUser;
+
     public static Scanner scanner = new Scanner (System.in);
     
     
@@ -78,8 +79,8 @@ public class Client
         return true;
     }
 
-    // returns a Token given a 
-    public static Token verifyUser(User User) {
+    // returns a Token that corresponds to the current user
+    public static Token verifyUser() {
         Token t = null;
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
@@ -169,59 +170,47 @@ public class Client
         System.out.println(currentUser.getUsername());
         
         // loop to accept commands
-            // authenticate user
-            // input command
-            // break if logout
-            // send command
-            // receive response
-            // output response
+        Message msg;
+        try {
+            Scanner sc = new Scanner (System.in);
+            do {
+                // authenticate user
+                Token t = verifyUser();
+                if (t == null) {
+                    System.out.println("Permission has been revoked. Please contact admin.");
+                }
+                // input command
+                String inputs = sc.nextLine();
+                // break if logout
+                // send command
+                // receive response
+                // output response
+
+                // Read and send message.  Since the Message class
+                // implements the Serializable interface, the
+                // ObjectOutputStream "output" object automatically
+                // encodes the Message object into a format that can
+                // be transmitted over the socket to the server.
+                msg = new Message("message to resource server", readSomeText());
+                resourceOutput.writeObject(msg);
+
+                // Get ACK and print.  Since Message implements
+                // Serializable, the ObjectInputStream can
+                // automatically read this object off of the wire and
+                // encode it as a Message.  Note that we need to
+                // explicitly cast the return from readObject() to the
+                // type Message.
+                Message resp = (Message)(resourceInput).readObject();
+                System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
+            } while(!msg.getCommand().toUpperCase().equals("LOGOUT"));
+
+        } catch (Exception e) {
+            System.out.println("invalid resource command");
+        }
         
         // logout
-
-        // Error checking for arguments
-
-    
-        // if(args.length != 1)
-        //     {
-        //     System.err.println("Not enough arguments.\n");
-        //     System.err.println("Usage: java EchoClient <Server name or IP>\n");
-        //     System.exit(-1);
-        //     }
-        Message msg;
-
-        try {
-                do {
-                    // Read and send message.  Since the Message class
-                    // implements the Serializable interface, the
-                    // ObjectOutputStream "output" object automatically
-                    // encodes the Message object into a format that can
-                    // be transmitted over the socket to the server.
-                    msg = new Message("message to resource server", readSomeText());
-                    resourceOutput.writeObject(msg);
-
-                    // Get ACK and print.  Since Message implements
-                    // Serializable, the ObjectInputStream can
-                    // automatically read this object off of the wire and
-                    // encode it as a Message.  Note that we need to
-                    // explicitly cast the return from readObject() to the
-                    // type Message.
-                    Message resp = (Message)(resourceInput).readObject();
-                    System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
-                } while(!msg.getCommand().toUpperCase().equals("LOGOUT"));
-
-            } catch (Exception e) {
-                System.out.println("invalid resource command");
-            }
-            
             // shut things down
             //authSock.close();
-        
-
-        // catch(Exception e){
-        //     System.err.println("Error: " + e.getMessage());
-        //     e.printStackTrace(System.err);
-        // }
-
     }
     
      //-- end main(String[]) -----------------------------------------------------
@@ -254,7 +243,6 @@ public class Client
     {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            StringBuilder str = new StringBuilder();
             System.out.print("Username: ");
             String username = in.readLine();
             System.out.print("Password: ");

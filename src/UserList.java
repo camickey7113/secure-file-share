@@ -2,15 +2,31 @@ import java.util.*;
 
 public class UserList implements java.io.Serializable {
 
-    private HashMap<String, User> list = new HashMap<String, User>();
+    private HashMap<String, User> userMap = new HashMap<String, User>();
 
-    public synchronized boolean addUser(User user){
-        return false;
+    public synchronized boolean addUser(User user) {
+        if (userMap.containsKey(user.getUsername())) {
+            return false;
+        } else {
+            userMap.put(user.getUsername(), user);
+        }
+        return true;
     }
 
-    public synchronized boolean deleteUser(String userName){
-        return false;
+    public synchronized boolean deleteUser(String username) {
+        if (!userMap.containsKey(username)){
+            return false;
+        } else {
+            userMap.remove(username);
+        }
+        return true;
     }
 
+    public synchronized boolean containsUser(String username) {
+        return userMap.containsKey(username);
+    }
 
+    public synchronized User getUser(String username) {
+        return userMap.get(username);
+    }
 }

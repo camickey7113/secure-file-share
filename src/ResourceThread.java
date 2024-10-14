@@ -81,10 +81,7 @@ public class ResourceThread extends Thread {
             // else, throw an exception "ur not a part of this group, cant do it"
     
     }
-
-
-
-
+    
 } // -- end class EchoResourceThread
 
 
