@@ -1,4 +1,5 @@
-import java.util.*;
+import java.io.Serializable;
+
 
 public class User implements java.io.Serializable {
     private String username;

@@ -60,7 +60,7 @@ public class Client
             final ObjectInputStream input = new ObjectInputStream(sock.getInputStream());
 
             // loop to send messages
-            Message msg = null, resp = null;
+            Message msg = null, resp = null, token = null;
             do {
                 while(true){
                     // Read and send message.  Since the Message class
@@ -68,8 +68,8 @@ public class Client
                     // ObjectOutputStream "output" object automatically
                     // encodes the Message object into a format that can
                     // be transmitted over the socket to the server.
-                    msg = new Message("login", readCredentials());
-                    output.writeObject(msg);
+                    User possible = readCredentials();
+                    output.writeObject(possible);
 
                     // Get ACK and print.  Since Message implements
                     // Serializable, the ObjectInputStream can
@@ -77,9 +77,9 @@ public class Client
                     // encode it as a Message.  Note that we need to
                     // explicitly cast the return from readObject() to the
                     // type Message.
-                    resp = (Message)input.readObject();
-                    System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
-                    if(resp != null) break;
+                    token = (Message)input.readObject();
+                    System.out.println("\nServer says: " + token.getCommand() + "\n" + token.getStuff().get(0));
+                    if(token != null) break;
                 }
 
                 do {
@@ -88,7 +88,7 @@ public class Client
                     // ObjectOutputStream "output" object automatically
                     // encodes the Message object into a format that can
                     // be transmitted over the socket to the server.
-                    msg = new Message("oh noo", readSomeText());
+                    msg = new Message(readSomeText(), null);
                     output.writeObject(msg);
 
                     // Get ACK and print.  Since Message implements
@@ -118,44 +118,35 @@ public class Client
      *
      * @return A line of text read from the console
      */
-    private static ArrayList<Object> readSomeText()
-    {
-        try{
-            //System.out.println("Enter a line of text, or type \"EXIT\" to quit.");
-            System.out.print(" > ");	
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            String test = in.readLine();
-            
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add(test);
-            return list;
-        }
-        catch(Exception e){
-            // Uh oh...
-            return null;
-        }
+	private static String readSomeText() {
+		try {
+			// System.out.println("Enter a line of text, or type \"EXIT\" to quit.");
+			System.out.print(" > ");
+			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+			return in.readLine();
+		} catch (Exception e) {
+			// Uh oh...
+			return "";
+		}
 
-    } //-- end readSomeText()
+	} // -- end readSomeText()
 
-    private static ArrayList<Object> readCredentials()
-    {
-        try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            StringBuilder str = new StringBuilder();
-            System.out.print("Username: ");
-            String username = in.readLine();
-            System.out.print("Password: ");
-            String password = in.readLine();
-            
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add(new User(username, password, null));
-            return list;
-        }
-        catch(Exception e){
-            // Uh oh...
-            return null;
-        }
-    }
+	private static User readCredentials() {
+		try {
+			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("Username: ");
+			String username = in.readLine();
+			System.out.println("Password: ");
+			String password = in.readLine();
+			System.out.println();
+			return new User(username, password, "group1");
+		} catch (Exception e) {
+			// Uh oh...
+			System.err.println("error reading in username or password");
+			System.exit(1);
+			return null;
+		}
+	}
 
         
 }

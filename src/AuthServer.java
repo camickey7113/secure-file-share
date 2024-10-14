@@ -41,9 +41,17 @@ public class AuthServer {
             AuthThread thread = null;
 
             // create root and test users
+            ArrayList<User> userList = new ArrayList<>();
+			userList.add(new User("root", "root", null)); 
+            userList.add(new User("user1", "pass1", "group1")); 
+            userList.add(new User("user2", "pass2", "group1"));
+			userList.add(new User("user3", "pass1", "group1")); 
+            userList.add(new User("user4", "pass2", "group1"));
+
+
             while (true) {
                 sock = serverSock.accept(); // Accept an incoming connection
-                thread = new AuthThread(this, sock); // Create a thread to handle this connection
+                thread = new AuthThread(this, sock, userList); // Create a thread to handle this connection
                 thread.start(); // Fork the thread
             } // Loop to work on new connections while this
                 // the accept()ed connection is handled
