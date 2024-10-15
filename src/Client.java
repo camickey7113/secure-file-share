@@ -2,6 +2,10 @@ import java.net.Socket; // Used to connect to the server
 import java.io.ObjectInputStream; // Used to read objects sent from the server
 import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.io.BufferedReader; // Needed to read from the console
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader; // Needed to read from the console
 import java.io.ObjectInput;
 import java.util.*;
@@ -114,6 +118,8 @@ public class Client {
     public static int handleCommand(String line, Token token) {
         // break up command string by spaces
         String[] split = line.split("\\s+");
+        ArrayList<Object> stuff = new ArrayList<Object>();
+        Token t = new Token("testGroup1", "root");
         // empty input?
         if(line.isEmpty()) return 1;
         // exit?
@@ -139,15 +145,22 @@ public class Client {
                         // TODO root command
                         break;
                     case "collect":
-                        // TODO root command
+                        if(split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        resourceOutput.writeObject(new Message("collect", null, stuff));
                         break;
                     case "release":
-                        // TODO root command
+                        if(split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        resourceOutput.writeObject(new Message("release", null, stuff));
                         break;
                     case "assign":
                         // TODO root command
                         break;
                     case "list":
+                        // TODO root command
+                        break;
+                    case "groups":
                         // TODO root command
                         break;
                     default:
@@ -156,13 +169,28 @@ public class Client {
             } else {
                 switch (split[0]) {
                     case "list":
-                        resourceOutput.writeObject(new Message("list", null, null));
+                        resourceOutput.writeObject(new Message("list", t, null));
                         break;
                     case "upload":
-                        // TODO user command
+                        if(split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        File file = new File(split[1]);
+                        // Create a byte array with the size of the file
+                        byte[] fileData = new byte[(int) file.length()];
+                        // Use FileInputStream to read the file into the byte array
+                        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                            int bytesRead = fileInputStream.read(fileData);
+                            if (bytesRead != fileData.length) {
+                                throw new IOException("Could not read the entire file into the byte array.");
+                            }
+                        }
+                        stuff.add(fileData);
+                        resourceOutput.writeObject(new Message("upload", t, stuff));
                         break;
                     case "download":
-                        // TODO user command
+                        if(split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        resourceOutput.writeObject(new Message("download", t, stuff));
                         break;
                     default:
                         return 0;
@@ -170,16 +198,17 @@ public class Client {
             }
         } catch (Exception e) {
             System.out.println(e.getMessage() + " (in handleCommand)");
+            return 1;
         }
         return 2;
     }
 
     public static boolean handleResponse() {
         try {
-            Message resp = (Message) (resourceInput).readObject();
-
+            //Message authResp = (Message) (authInput).readObject();
+            Message resResp;
             if (currentUser.getUsername() == "root") {
-                switch (resp.getCommand()) {
+                switch ("collect") {//dont forget
                     case "create":
                         // TODO root command
                         break;
@@ -187,11 +216,13 @@ public class Client {
                         // TODO root command
                         break;
                     case "collect":
+                        resResp = (Message) (resourceInput).readObject();
+                        return true;//return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
                         // TODO root command
-                        break;
                     case "release":
+                        resResp = (Message) (resourceInput).readObject();
+                        return true;//return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
                         // TODO root command
-                        break;
                     case "assign":
                         // TODO root command
                         break;
@@ -202,15 +233,28 @@ public class Client {
                         return false;
                 }
             } else {
+                Message resp = (Message) (resourceInput).readObject();
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
                         break;
                     case "upload":
-                        // TODO user command
+                        if((boolean)resp.getStuff().get(0)) {
+                            System.out.println("File created successfully.");
+                        } else {
+                            System.out.println("An error has occurred. File was not created.");
+                        }
                         break;
                     case "download":
-                        // TODO user command
+                        if((boolean)resp.getStuff().get(0)) {
+                            File file = new File((String)resp.getStuff().get(1));
+                            file.createNewFile();
+                            FileOutputStream fout = new FileOutputStream(file);
+                            fout.write((byte[])resp.getStuff().get(2));
+                            System.out.println("Download successful.");
+                        } else {
+                            System.out.println("An error has occurred. File not downloaded.");
+                        }
                         break;
                     default:
                         return false;
@@ -218,6 +262,7 @@ public class Client {
             }
         } catch (Exception e) {
             System.out.println(e.getMessage() + " (in handleResponse)");
+            return false;
         }
         return true;
     }
@@ -295,6 +340,7 @@ public class Client {
                     // System.out.println("Permission has been revoked. Please contact admin.");
                     // }
                     // input command
+                    System.out.println(currentUser.getUsername());
                     String inputs = readSomeText();
                     switch(handleCommand(inputs, null)) {
                         case 0:
