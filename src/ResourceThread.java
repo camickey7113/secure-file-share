@@ -47,7 +47,7 @@ public class ResourceThread extends Thread {
             // Write an ACK back to the sender
             count++;
             ArrayList<Object> list = new ArrayList<Object>();
-            list.add("Bello! (not hardcoded and from resource server!!!)");
+            list.add("remove this asap");
             output.writeObject(new Message("Received message #" + count, list));
             }
             while (!msg.getCommand().equals("logout"));

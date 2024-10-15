@@ -30,9 +30,9 @@ public class Client
     
     
     public static boolean connectToAuthServer() {
-        System.out.println("Enter authentication server name: ");
+        System.out.print("Enter authentication server name: ");
         AuthIP = scanner.next();
-        System.out.println("Enter authentication server port: ");
+        System.out.print("Enter authentication server port: ");
         AuthPortNumber = scanner.nextInt();
         try {
             authSock = new Socket(AuthIP, AuthPortNumber);
@@ -56,9 +56,9 @@ public class Client
     }
 
     public static boolean connectToResourceServer() {
-        System.out.println("Enter resource IP address");
+        System.out.print("Enter resource server name: ");
         ResourceIP = scanner.next();
-        System.out.println("Enter resource server port: ");
+        System.out.print("Enter resource server port: ");
         ResourcePortNumber = scanner.nextInt();
         try {
             resourceSock = new Socket(ResourceIP, ResourcePortNumber);
@@ -154,7 +154,7 @@ public class Client
         // connect to auth server
         // connect to user server
         if(connectToAuthServer() && connectToResourceServer()) {
-            System.out.println("Success!");
+            System.out.println("Success! Both servers have connected!\n");
         }
         else {
             System.out.println("Error connecting to servers");
@@ -175,12 +175,12 @@ public class Client
             Scanner sc = new Scanner (System.in);
             do {
                 // authenticate user
-                Token t = verifyUser();
-                if (t == null) {
-                    System.out.println("Permission has been revoked. Please contact admin.");
-                }
+                // Token t = verifyUser();
+                // if (t == null) {
+                //     System.out.println("Permission has been revoked. Please contact admin.");
+                // }
                 // input command
-                String inputs = sc.nextLine();
+                //String inputs = sc.nextLine();
                 // break if logout
                 // send command
                 // receive response
@@ -191,7 +191,7 @@ public class Client
                 // ObjectOutputStream "output" object automatically
                 // encodes the Message object into a format that can
                 // be transmitted over the socket to the server.
-                msg = new Message("message to resource server", readSomeText());
+                msg = new Message("message", readSomeText());
                 resourceOutput.writeObject(msg);
 
                 // Get ACK and print.  Since Message implements
@@ -201,7 +201,7 @@ public class Client
                 // explicitly cast the return from readObject() to the
                 // type Message.
                 Message resp = (Message)(resourceInput).readObject();
-                System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
+                //System.out.println("\nServer says: " + resp.getCommand() + "\n" + resp.getStuff().get(0));
             } while(!msg.getCommand().toUpperCase().equals("LOGOUT"));
 
         } catch (Exception e) {
@@ -222,8 +222,7 @@ public class Client
      */
     private static ArrayList<Object> readSomeText()
     {
-        try{
-            //System.out.println("Enter a line of text, or type \"EXIT\" to quit.");
+        try {
             System.out.print(" > ");	
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             String test = in.readLine();
