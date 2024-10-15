@@ -46,7 +46,7 @@ public class AuthThread extends Thread
             count++;
             ArrayList<Object> list = new ArrayList<Object>();
             list.add(new User("user1", "pass1", "group1"));
-            output.writeObject(new Message("Received message #" + count, list));
+            output.writeObject(new Message("Received message #" + count, null, list));
 
             } while(!msg.getCommand().toUpperCase().equals("EXIT"));
 

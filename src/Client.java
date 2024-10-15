@@ -90,7 +90,7 @@ public class Client {
         // send user to AS for verification
         // receive response
         try {
-            authOutput.writeObject(new Message("verify", list));
+            authOutput.writeObject(new Message("verify", null, list));
             t = (Token) ((Message) authInput.readObject()).getStuff().get(0);
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -125,7 +125,7 @@ public class Client {
         // logout?
         if (split[0].equals("logout")) {
             logout();
-            return 2;
+            return 1;
         }
             
         // determine if user is root and switch accordingly
@@ -156,7 +156,7 @@ public class Client {
             } else {
                 switch (split[0]) {
                     case "list":
-                        resourceOutput.writeObject(new Message("list", null));
+                        resourceOutput.writeObject(new Message("list", null, null));
                         break;
                     case "upload":
                         // TODO user command
@@ -227,7 +227,7 @@ public class Client {
         try {
             ArrayList<Object> wrap = new ArrayList<Object>();
             wrap.add(token);
-            Message newcommand = new Message(command, wrap);
+            Message newcommand = new Message(command, null, wrap);
             serverstream.writeObject(newcommand);
             return true;
         } catch (Exception e) {
@@ -249,7 +249,7 @@ public class Client {
             // send user to AS for verification
             // receive response
             try {
-                authOutput.writeObject(new Message("verify", list));
+                authOutput.writeObject(new Message("verify", null, list));
                 potentialUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
