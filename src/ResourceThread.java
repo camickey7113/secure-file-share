@@ -42,13 +42,21 @@ public class ResourceThread extends Thread {
             do {
             // read and print message
             msg = (Message)input.readObject();
-            System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
+            // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
-            // Write an ACK back to the sender
-            count++;
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add("remove this asap");
-            output.writeObject(new Message("Received message #" + count, list));
+
+
+            // // Write an ACK back to the sender
+            ArrayList<Object> stuff = new ArrayList<Object>();
+            if (msg.getCommand().equals("list")) {
+                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group ; ls");
+                Process process = pb.start();
+                stuff.add(new String(process.getInputStream().readAllBytes()));
+            }
+            output.writeObject(new Message(msg.getCommand(), stuff));
+
+
+
             }
             while (!msg.getCommand().equals("logout"));
 
