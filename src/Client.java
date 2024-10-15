@@ -79,22 +79,24 @@ public class Client {
             resourceInput = new ObjectInputStream(resourceSock.getInputStream());
         } catch (Exception e) {
             System.out.println("I/O failed");
+            return false;
         }
 
         System.out.println("Successful connection to Resource Server");
         return true;
     }
 
-    // returns a Token that corresponds to the current user
+    // returns a Token that corresponds to the current user or null if the current
+    // user was removed from the system after they already logged in
     public static Token verifyUser() {
         Token t = null;
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
         list.add(currentUser);
-        // send user to AS for verification
-        // receive response
         try {
+            // send user to AS for verification
             authOutput.writeObject(new Message("verify", null, list));
+            // receive response
             t = (Token) ((Message) authInput.readObject()).getStuff().get(0);
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -104,7 +106,7 @@ public class Client {
         if (t == null) {
             System.out.println("User no longer exists!");
         }
-        // return user token
+        // return user token (or null)
         return t;
     }
 
@@ -112,28 +114,32 @@ public class Client {
     // root or not. A single string is given as input, which is broken up and
     // handled accordingly by an if-else statement.
     // return codes:
-    //      0 : invalid command
-    //      1 : empty/logout command
-    //      2 : valid command
+    // 0 : invalid command
+    // 1 : empty/logout command
+    // 2 : valid command
     public static int handleCommand(String line, Token token) {
         // break up command string by spaces
         String[] split = line.split("\\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = new Token("testGroup1", "root");
+
         // empty input?
-        if(line.isEmpty()) return 1;
+        if (line.isEmpty())
+            return 1;
+
         // exit?
         if (split[0].equals("exit")) {
             exit();
             System.out.print("Failed to exit...");
             return 1;
         }
+
         // logout?
         if (split[0].equals("logout")) {
             logout();
             return 1;
         }
-            
+
         // determine if user is root and switch accordingly
         try {
             if (currentUser.getUsername() == "root") {
@@ -141,28 +147,37 @@ public class Client {
                     case "create":
                         // TODO root command
                         break;
+
                     case "delete":
                         // TODO root command
                         break;
+
                     case "collect":
-                        if(split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("collect", null, stuff));
                         break;
+
                     case "release":
-                        if(split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("release", null, stuff));
                         break;
+
                     case "assign":
                         // TODO root command
                         break;
+
                     case "list":
                         // TODO root command
                         break;
+
                     case "groups":
                         // TODO root command
                         break;
+
                     default:
                         return 0;
                 }
@@ -171,8 +186,10 @@ public class Client {
                     case "list":
                         resourceOutput.writeObject(new Message("list", t, null));
                         break;
+
                     case "upload":
-                        if(split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         File file = new File(split[1]);
                         // Create a byte array with the size of the file
@@ -187,11 +204,14 @@ public class Client {
                         stuff.add(fileData);
                         resourceOutput.writeObject(new Message("upload", t, stuff));
                         break;
+
                     case "download":
-                        if(split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("download", t, stuff));
                         break;
+
                     default:
                         return 0;
                 }
@@ -205,30 +225,38 @@ public class Client {
 
     public static boolean handleResponse() {
         try {
-            //Message authResp = (Message) (authInput).readObject();
+            Message authResp = (Message) (authInput).readObject();
             Message resResp;
             if (currentUser.getUsername() == "root") {
-                switch ("collect") {//dont forget
+                switch (authResp.getCommand()) {
                     case "create":
                         // TODO root command
                         break;
+
                     case "delete":
                         // TODO root command
                         break;
+
                     case "collect":
                         resResp = (Message) (resourceInput).readObject();
-                        return true;//return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
+                        return true;// return (boolean)authResp.getStuff().get(0) &&
+                                    // (boolean)resResp.getStuff().get(0);
                         // TODO root command
+
                     case "release":
                         resResp = (Message) (resourceInput).readObject();
-                        return true;//return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
+                        return true;// return (boolean)authResp.getStuff().get(0) &&
+                                    // (boolean)resResp.getStuff().get(0);
                         // TODO root command
+
                     case "assign":
                         // TODO root command
                         break;
+
                     case "list":
                         // TODO root command
                         break;
+
                     default:
                         return false;
                 }
@@ -238,24 +266,27 @@ public class Client {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
                         break;
+
                     case "upload":
-                        if((boolean)resp.getStuff().get(0)) {
+                        if ((boolean) resp.getStuff().get(0)) {
                             System.out.println("File created successfully.");
                         } else {
                             System.out.println("An error has occurred. File was not created.");
                         }
                         break;
+
                     case "download":
-                        if((boolean)resp.getStuff().get(0)) {
-                            File file = new File((String)resp.getStuff().get(1));
+                        if ((boolean) resp.getStuff().get(0)) {
+                            File file = new File((String) resp.getStuff().get(1));
                             file.createNewFile();
                             FileOutputStream fout = new FileOutputStream(file);
-                            fout.write((byte[])resp.getStuff().get(2));
+                            fout.write((byte[]) resp.getStuff().get(2));
                             System.out.println("Download successful.");
                         } else {
                             System.out.println("An error has occurred. File not downloaded.");
                         }
                         break;
+
                     default:
                         return false;
                 }
@@ -285,22 +316,22 @@ public class Client {
     // Upon successful login, returns a User object that may or may not exist in the
     // AS user list
     public static User login() {
-        User potentialUser = null;
+        User newUser = null;
         // loop until a User is returned
         do {
             // construct list with user
             ArrayList<Object> list = new ArrayList<Object>();
             list.add(readCredentials());
-            // send user to AS for verification
-            // receive response
             try {
-                authOutput.writeObject(new Message("verify", null, list));
-                potentialUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
+                // send user to AS for verification
+                authOutput.writeObject(new Message("login", null, list));
+                // receive response
+                newUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
-        } while (potentialUser == null);
-        return potentialUser;
+        } while (newUser == null); // loop until successful login occurs
+        return newUser;
     }
 
     public static void logout() {
@@ -309,7 +340,14 @@ public class Client {
 
     public static void exit() {
         // cleanup stuff
-        // TODO
+        try {
+            authOutput.writeObject(new Message("exit", null, null));
+            resourceOutput.writeObject(new Message("exit", null, null));
+        } catch (Exception e) {
+            System.out.println("One or more servers was able to shut down, please try again.");
+            return;
+        }
+
         System.exit(0);
     }
 
@@ -335,14 +373,17 @@ public class Client {
             try {
                 while (currentUser != null) {
                     // authenticate user
-                    // Token t = verifyUser();
-                    // if (t == null) {
-                    // System.out.println("Permission has been revoked. Please contact admin.");
-                    // }
+                    Token t = verifyUser();
+                    // if unable to verify, user will need to re-login
+                    if (t == null) {
+                        System.out.println("Permission has been revoked. Please contact admin.");
+                        logout();
+                        continue;
+                    }
+
                     // input command
-                    System.out.println(currentUser.getUsername());
                     String inputs = readSomeText();
-                    switch(handleCommand(inputs, null)) {
+                    switch (handleCommand(inputs, null)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
                         case 1:
@@ -350,48 +391,16 @@ public class Client {
                         case 2:
                             break;
                         default:
-                            throw new Exception("Something is VERY wrong..."); 
+                            throw new Exception("Something is VERY wrong...");
                     }
 
                     handleResponse();
-                        
-                    // break if logout
-                    // send command
-                    // receive response
-                    // output response
-
-                    // Read and send message. Since the Message class
-                    // implements the Serializable interface, the
-                    // ObjectOutputStream "output" object automatically
-                    // encodes the Message object into a format that can
-                    // be transmitted over the socket to the server.
-                    //---------------------------------------------------------------------------------------------------------------------------------
-                    // msg = new Message("message", null);
-                    // resourceOutput.writeObject(msg);
-                    //---------------------------------------------------------------------------------------------------------------------------------
-
-
-                    // Get ACK and print. Since Message implements
-                    // Serializable, the ObjectInputStream can
-                    // automatically read this object off of the wire and
-                    // encode it as a Message. Note that we need to
-                    // explicitly cast the return from readObject() to the
-                    // type Message.
-                    //---------------------------------------------------------------------------------------------------------------------------------
-                    //Message resp = (Message) (resourceInput).readObject();
-                    //---------------------------------------------------------------------------------------------------------------------------------
-                    // System.out.println("\nServer says: " + resp.getCommand() + "\n" +
-                    // resp.getStuff().get(0));
                 }
 
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
         }
-
-        // logout
-        // shut things down
-        // authSock.close();
     }
 
     // -- end main(String[]) -----------------------------------------------------

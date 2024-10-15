@@ -51,11 +51,9 @@ public class ResourceThread extends Thread {
                 // // Write an ACK back to the sender
                 handleClientRequest(msg, output);
 
-            } while (!msg.getCommand().equals("logout"));
-
-            // Close and cleanup
-            System.out
-                    .println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
+            } while (!msg.getCommand().equals("exit"));
+            
+            // cleanup
             socket.close();
 
         } catch (Exception e) {
@@ -77,6 +75,7 @@ public class ResourceThread extends Thread {
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
+
                 case "upload":
                     try {
                         File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
@@ -92,6 +91,7 @@ public class ResourceThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
                     break;
+
                 case "download":
                     try {
                         // Search user's group folder for file
@@ -113,6 +113,7 @@ public class ResourceThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
                     break;
+
                 case "collect":
                     String directoryPath = "group" + File.separator + msg.getStuff().get(0);
                     File directory = new File(directoryPath);
@@ -120,6 +121,7 @@ public class ResourceThread extends Thread {
                     stuff.add(true);
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
+
                 case "release":
                     String directoryPath2 = "group" + File.separator + msg.getStuff().get(0);
                     File directory2 = new File(directoryPath2);
