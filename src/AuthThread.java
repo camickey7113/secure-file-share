@@ -80,9 +80,11 @@ public class AuthThread extends Thread {
                 msg = (Message) input.readObject();
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
-                // Write an ACK back to the sender
-                count++;
-                output.writeObject(new Message("Received message #" + count, null));
+            // Write an ACK back to the sender
+            count++;
+            ArrayList<Object> list = new ArrayList<Object>();
+            list.add(new User("user1", "pass1", "group1"));
+            output.writeObject(new Message("Received message #" + count, null, list));
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 

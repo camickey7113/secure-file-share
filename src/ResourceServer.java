@@ -5,23 +5,9 @@ import java.io.File;
 
 public class ResourceServer {
     // port the server will use to connect
-    public static final int SERVER_PORT = 8765;
+    public static final int SERVER_PORT = 8766;
     // map of groups and files that each owns
-    HashMap<Group, FileList> fileList;
-
     private static ResourceServer server;
-
-    public ResourceServer() {
-        this.fileList = new HashMap<Group, FileList>();
-    }
-    
-    public boolean loadFileList(File userFile) {
-        return false;
-    }
-
-    public boolean saveFileList(File userFile) {
-        return false;
-    }
 
     public void listenOnPort(int port) {
 
@@ -44,7 +30,7 @@ public class ResourceServer {
                 thread = new ResourceThread(this, sock);  // Create a thread to handle this connection
                 thread.start();                 // Fork the thread
             }                                   // Loop to work on new connections while this
-                                                    // the accept()ed connection is handled
+                                                // the accept()ed connection is handled
 
         }
         catch(Exception e){

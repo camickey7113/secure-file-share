@@ -3,6 +3,7 @@ import java.util.*;
 
 public class Message implements java.io.Serializable {
     private String command;
+    private Token token;
     private ArrayList<Object> stuff;
     
     // Message Constructors
@@ -16,8 +17,9 @@ public class Message implements java.io.Serializable {
     //     this.command = null;
     // }
 
-    public Message(String cmd, ArrayList<Object> stuff){
+    public Message(String cmd, Token token, ArrayList<Object> stuff){
         this.command = cmd;
+        this.token = token;
         this.stuff = stuff;
     }
 
@@ -25,14 +27,22 @@ public class Message implements java.io.Serializable {
     public String getCommand() {
         return command;
     }
+
+    public Token getToken() {
+        return token;
+    }
+
     public ArrayList<Object> getStuff() {
         return stuff;
     }
 
-    //Setters
-    public boolean setCommand(String cmd) {
+    // Setters
+    public void setCommand(String cmd) {
         this.command = cmd;
-        return false;
+    }
+
+    public void setToken(Token token) {
+        this.token = token;
     }
     
     public boolean addStuff(Object item) {

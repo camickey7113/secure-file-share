@@ -1,18 +1,18 @@
-import java.util.*;
+//import java.util.*;
 
 public class Group implements java.io.Serializable {
     String name;
 
-    ArrayList<User> userList;
+    UserList members;
 
     public Group(String name) {
         this.name = name;
-        this.userList = new ArrayList<User>();
+        this.members = new UserList();
     }
 
-    public Group(String name, ArrayList<User> userList) {
+    public Group(String name, UserList members) {
         this.name = name;
-        this.userList = userList;
+        this.members = members;
     }
 
     public String getName() {
@@ -23,11 +23,24 @@ public class Group implements java.io.Serializable {
         this.name = name;
     }
 
-    public ArrayList<User> getUserList() {
-        return this.userList;
+    public UserList getMembers() {
+        return this.members;
     }
 
-    public void setUserList(ArrayList<User> userList) {
-        this.userList = userList;
+    public void setMembers(UserList members) {
+        this.members = members;
     }
+    
+    public boolean addMember(User member) {
+        return members.addUser(member);
+    }
+
+    public boolean removeMember(User member) {
+        return members.deleteUser(member.getUsername());
+    }
+
+    public boolean removeMember(String username) {
+        return members.deleteUser(username);
+    }
+
 }

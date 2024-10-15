@@ -2,20 +2,57 @@ import java.net.ServerSocket; // The server uses this to bind to a port
 import java.net.Socket; // Incoming connections are represented as sockets
 import java.util.*;
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 
 public class AuthServer {
     // port the server will use to connect
     public static final int SERVER_PORT = 8765;
+    static BufferedReader reader;
     // list of all users in the system
-    ArrayList<User> userList;
+    static UserList userList;
+    static GroupList groups;
+    Group newGroup;
 
     private static AuthServer server;
 
     public AuthServer() {
-        this.userList = new ArrayList<User>();
+        this.userList = new UserList();
     }
     
-    public boolean loadUserList(File userFile) {
+    public static boolean loadUserAndGroupList(File userFile) {
+        try {
+            reader = new BufferedReader(new FileReader("users.txt"));
+            String userLine = reader.readLine();
+           
+            while(userLine != null){
+                String users[] = userLine.split(",");
+                
+                String username = users[0];
+                String password = users[1];
+                String group = users[2];
+                User user = new User(username, password, group);
+                // if the group does not exist, create it and add to global group list
+                if(!groups.containsGroup(group)){
+                    Group newGroup = new Group(group);
+                    groups.addGroup(newGroup);
+                }
+                // add the user to their group
+                groups.getGroup(group).addMember(user);
+                // add the user to the global user list
+                userList.addUser(user);
+               
+     
+            }
+            reader.close();
+            return true;
+
+        }
+        catch(IOException e){
+            e.printStackTrace();
+            
+        }
         return false;
     }
 
@@ -65,5 +102,12 @@ public class AuthServer {
     public static void main(String[] args) {
         server = new AuthServer();
         server.start();
+        File usersFile = new File("users.txt");
+        try{
+           loadUserAndGroupList(usersFile);
+        }
+        catch(Exception e){
+            System.out.println("Error Loading Users");
+        }
     }
 }

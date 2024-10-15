@@ -1,8 +1,12 @@
 import java.lang.Thread; // We will extend Java's base Thread class
 import java.net.Socket;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
+import java.util.*;
 
 public class ResourceThread extends Thread {
     private ResourceServer server;
@@ -15,7 +19,7 @@ public class ResourceThread extends Thread {
      * @param socket The socket passed in from the server
      *
      */
-    
+
     public ResourceThread(ResourceServer server, Socket socket) {
         this.server = server;
         this.socket = socket;
@@ -28,49 +32,113 @@ public class ResourceThread extends Thread {
      */
     public void run() {
         try {
-            
             // Print incoming message
-            do {
-                //msg = new Message("Bello");
-            }
-            while (!msg.getCommand().equals("logout"));
+            System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
-            // Close and cleanup
-            System.out.println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
+            // set up I/O streams with the client
+            final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+            final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+
+            // Loop to read messages
+            Message msg = null;
+            int count = 0;
+            do {
+                // read and print message
+                msg = (Message) input.readObject();
+                // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() +
+                // "] " + msg.getCommand());
+                System.out.println(msg.getCommand());
+                // // Write an ACK back to the sender
+                handleClientRequest(msg, output);
+
+            } while (!msg.getCommand().equals("exit"));
+            
+            // cleanup
             socket.close();
 
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage()); 
+            System.err.println("Error: " + e.getMessage());
             e.printStackTrace(System.err);
         }
     }
 
-    // other methods
-
-    // commands: read, write, create, delete, list(ls)
-    // create and delete files 
 
     private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
-        String request = msg.getCommand(); // like "read group1_file1.txt"
-        String command = request.split(" ")[0]; // like "read"
-        String fileName = request.split(" ")[1]; // like "group1_file1.txt"
+        ArrayList<Object> stuff = new ArrayList<Object>();
+        Token t = msg.getToken();
 
-        // if command was "read", OR you are root
-            // immediately call a "performOperation()" type of function bc anybody can read anything ... or if you're the root, you can DO anything
+        try {
+            switch (msg.getCommand()) {
+                case "list":
+                    ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group" + File.separator +  t.getGroup() + " ; ls");
+                    Process process = pb.start();
+                    stuff.add(new String(process.getInputStream().readAllBytes()));
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
 
-        // else if command was not read.. so write, create, or delete a file
-        // btw if this hits, you are definitely a student
-            // if you are a part of the group that the file is stored at, call "performOperation()"
-            // else, throw an exception "ur not a part of this group, cant do it"
-    
+                case "upload":
+                    try {
+                        File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                        file.createNewFile();
+
+                        FileOutputStream fout = new FileOutputStream(file);
+                        fout.write((byte[])msg.getStuff().get(1));
+
+                        stuff.add(true);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    } catch(Exception e) {
+                        stuff.add(false);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    }
+                    break;
+
+                case "download":
+                    try {
+                        // Search user's group folder for file
+                        File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                        byte[] fileData = new byte[(int) file.length()];
+                        // Use FileInputStream to read the file into the byte array
+                        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                            int bytesRead = fileInputStream.read(fileData);
+                            if (bytesRead != fileData.length) {
+                                throw new IOException("Could not read the entire file into the byte array.");
+                            }
+                        }
+                        stuff.add(true);
+                        stuff.add(msg.getStuff().get(0));
+                        stuff.add(fileData);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    } catch (Exception e){
+                        stuff.add(false);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    }
+                    break;
+
+                case "collect":
+                    String directoryPath = "group" + File.separator + msg.getStuff().get(0);
+                    File directory = new File(directoryPath);
+                    boolean directoryCreated = directory.mkdir();
+                    stuff.add(true);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+
+                case "release":
+                    String directoryPath2 = "group" + File.separator + msg.getStuff().get(0);
+                    File directory2 = new File(directoryPath2);
+                    for (File subfile : directory2.listFiles()) {
+                        subfile.delete();
+                    }
+                    directory2.delete();
+                    stuff.add(true);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+                
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        
     }
 
-
-
-
-} // -- end class EchoResourceThread
-
-
-
-
-
+} // -- end class ResourceThread

@@ -1,4 +1,4 @@
-import java.util.*;
+//import java.util.*;
 
 public class Token implements java.io.Serializable {
 
@@ -12,6 +12,7 @@ public class Token implements java.io.Serializable {
 	public Token(String username, String group) {
 		this.username = username;
 		this.group = group;
+		this.username = username;
 	}
 
 	public String getGroup() {
@@ -21,4 +22,12 @@ public class Token implements java.io.Serializable {
 	public void setGroup(String group) {
 		this.group = group;
 	}	
+
+	public String getUser(){
+		return this.username;
+	}
+
+	public void setUser(String username){
+		this.username = username;
+	}
 }
