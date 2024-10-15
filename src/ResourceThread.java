@@ -49,7 +49,7 @@ public class ResourceThread extends Thread {
             // // Write an ACK back to the sender
             ArrayList<Object> stuff = new ArrayList<Object>();
             if (msg.getCommand().equals("list")) {
-                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group/testGroup1 ; ls");
+                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group ; ls");
                 Process process = pb.start();
                 stuff.add(new String(process.getInputStream().readAllBytes()));
             }
