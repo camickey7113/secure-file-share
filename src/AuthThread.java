@@ -55,12 +55,15 @@ public class AuthThread extends Thread {
                 System.out.println("Received password: " + password);
 
                 ArrayList<Object> theToken = new ArrayList<Object>();
-                theToken.add(token);
+
+
+             
 
                 
                 // got the user and pass. call authenticate on it.
                 if (authenticate(username, password)) { // if we were able to authenticate, give them a token
                     token = generateToken(username);
+                    theToken.add(token);
                     output.writeObject(new Message("Authentication successful", theToken)); // send token back to client
                 } else {
                     output.writeObject(new Message("Authentication failed, try again", null)); // Failed authentication
