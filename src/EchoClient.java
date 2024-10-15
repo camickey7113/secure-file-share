@@ -24,7 +24,8 @@ public class EchoClient
     public static void main(String[] args)
     {
 		Scanner scanner = new Scanner(System.in);
-		int CLIENT_PORT = 0;
+		int AUTH_PORT = 0;
+		int RESOURCE_PORT = 1;
 	// Error checking for arguments
 	if(args.length != 1)
 	    {
@@ -34,16 +35,25 @@ public class EchoClient
 	    }
 
 	try{
-	    // Connect to the specified server
-		System.out.println("Specify with authentication server port you want to connect to: ");
-		CLIENT_PORT = scanner.nextInt();
-	    final Socket sock = new Socket(args[0], CLIENT_PORT);
+	    // Connect to the specified authentication server
+		System.out.println("Specify which authentication server port you want to connect to: ");
+		AUTH_PORT = scanner.nextInt();
+	    final Socket authSock = new Socket(args[0], AUTH_PORT);
 		
-	    System.out.println("Connected to " + args[0] + " on port " + CLIENT_PORT);
-	    
-	    // Set up I/O streams with the server
-	    final ObjectOutputStream output = new ObjectOutputStream(sock.getOutputStream());
-	    final ObjectInputStream input = new ObjectInputStream(sock.getInputStream());
+	    System.out.println("Connected to " + args[0] + " on port " + AUTH_PORT);
+	    // Connect to the specified resource server 
+		System.out.println("Specify which resource server port you want to connect to: ");
+		RESOURCE_PORT = scanner.nextInt();
+	    final Socket resourceSock = new Socket(args[0], RESOURCE_PORT);
+		
+	    System.out.println("Connected to " + args[0] + " on port " + RESOURCE_PORT);
+
+	    // Set up I/O streams with the authentication server
+	    final ObjectOutputStream authOutput = new ObjectOutputStream(authSock.getOutputStream());
+	    final ObjectInputStream authInput = new ObjectInputStream(authSock.getInputStream());
+		// Set up I/O streams with the resource server
+		final ObjectOutputStream resourceOutput = new ObjectOutputStream(resourceSock.getOutputStream());
+	    final ObjectInputStream resourceInput = new ObjectInputStream(resourceSock.getInputStream());
 
 	    // loop to send messages
 	    Message msg = null, resp = null, token = null;
@@ -55,7 +65,7 @@ public class EchoClient
 				// encodes the Message object into a format that can
 				// be transmitted over the socket to the server.
 				msg = new Message(readCredentials());
-				output.writeObject(msg);
+				authOutput.writeObject(msg);
 
 				// Get ACK and print.  Since Message implements
 				// Serializable, the ObjectInputStream can
@@ -63,8 +73,8 @@ public class EchoClient
 				// encode it as a Message.  Note that we need to
 				// explicitly cast the return from readObject() to the
 				// type Message.
-				token = (Message)input.readObject();
-				//System.out.println("\nServer says: " + token.theMessage + "\n" + "Token: " + token.token);
+				token = (Message)authInput.readObject();
+				System.out.println("\nAuth Server says: " + msg + "\n");
 				if(token != null) break;
 			}
 
@@ -75,7 +85,7 @@ public class EchoClient
 				// encodes the Message object into a format that can
 				// be transmitted over the socket to the server.
 				msg = new Message(readSomeText());
-				output.writeObject(msg);
+				authOutput.writeObject(msg);
 
 				// Get ACK and print.  Since Message implements
 				// Serializable, the ObjectInputStream can
@@ -83,13 +93,13 @@ public class EchoClient
 				// encode it as a Message.  Note that we need to
 				// explicitly cast the return from readObject() to the
 				// type Message.
-				resp = (Message)input.readObject();
+				resp = (Message)authInput.readObject();
 			}while(!msg.theMessage.toUpperCase().equals("LOGOUT"));
 
 	    } while(!msg.theMessage.toUpperCase().equals("EXIT"));
 	    
 	    // shut things down
-	    sock.close();
+	    authSock.close();
 
 	}
 	catch(Exception e){
@@ -135,6 +145,21 @@ public class EchoClient
 	    // Uh oh...
 	    return "";
 	}
+	}
+
+	private static String writeFromResource()
+	{
+		try{
+
+			return "";
+
+
+		}
+		catch(Exception e){
+
+			return "";
+
+		}
 	}
 
 } //-- end class EchoClient
