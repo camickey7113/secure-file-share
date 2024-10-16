@@ -161,6 +161,7 @@ public class Client {
                         String group = split[3];
                         stuff.add(createUser(username, password, group));
                         authOutput.writeObject(new Message("create", null, stuff));
+                        resourceOutput.writeObject(new Message("create", null, stuff));
                         break;
 
                     case "delete":

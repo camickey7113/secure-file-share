@@ -149,6 +149,21 @@ public class ResourceThread extends Thread {
                     }
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
+
+                case "create":
+                    String newGroup = ((User)msg.getStuff().get(0)).getGroup();
+                    // check if group folder exists
+                    String directoryPath3 = "group" + File.separator + newGroup;
+                    File directory3 = new File(directoryPath3);
+                    // if it exists
+                    if(!directory3.isDirectory()) {
+                        // create directory
+                        boolean directoryCreated3 = directory3.mkdir();
+                        stuff.add(directoryCreated3); 
+                    }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+
                 
             }
         } catch (Exception e) {
