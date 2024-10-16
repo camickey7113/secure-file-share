@@ -233,14 +233,19 @@ public class Client {
                         break;
 
                     case "download":
-                        if (split[1].isEmpty())
-                            return 0;
+                        if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("download", t, stuff));
                         break;
 
                     default:
                         return 0;
+
+                    case "delete":
+                        if (split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        resourceOutput.writeObject(new Message("delete", t, stuff));
+                        break;
                 }
             }
         } catch (Exception e) {
@@ -315,6 +320,13 @@ public class Client {
                             System.out.println("An error has occurred. File not downloaded.");
                         }
                         break;
+
+                    case "delete":
+                        if((boolean) resp.getStuff().get(0)) {
+                            System.out.println("File deleted successfully.");
+                        } else {
+                            System.out.println("File was unable to be deleted.");
+                        }
 
                     default:
                         return false;

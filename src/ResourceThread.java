@@ -115,6 +115,18 @@ public class ResourceThread extends Thread {
                     }
                     break;
 
+                case "delete":
+                    // Search user's group folder for file
+                    File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                    if(file.isFile()) {
+                        file.delete();
+                        stuff.add(true);
+                    } else {
+                        stuff.add(false);
+                    }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+
                 case "collect":
                     String directoryPath = "group" + File.separator + msg.getStuff().get(0);
                     File directory = new File(directoryPath);
