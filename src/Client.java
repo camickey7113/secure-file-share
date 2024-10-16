@@ -240,37 +240,27 @@ public class Client {
     // Upon successful login, returns a User object that may or may not exist in the
     // AS user list
     public static User login() {
-        User potentialUser = null;
-        // loop until a User is returned
-        do {
-            // construct list with user
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add(readCredentials());
-            //System.out.println("made it here");
-            // send user to AS for verification
-            // receive response
-            try {
-                authOutput.writeObject(new Message("login", null, list));
-                //System.out.println("here now");
-                //String loginMessage = ((Message) authInput.readObject()).getCommand();
-                //System.out.println(loginMessage);
-                while(((Message) authInput.readObject()).getCommand().equals("login") != true){
-                   // System.out.println("here now !!!");
-                    potentialUser = null;
-                   // System.out.println("still here");
-                }
-                //System.out.println("here now again");
-                System.out.println(potentialUser.getUsername());
-                potentialUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
-                
-                // ^wat dis doins
-                //System.out.println("now made it here");
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
+        // construct list with user
+        ArrayList<Object> list = new ArrayList<Object>();
+        list.add(readCredentials());
+        //System.out.println("made it here");
+        // send user to AS for verification
+        // receive response
+        try {
+            authOutput.writeObject(new Message("login", null, list));
+
+            Message resp = (Message) authInput.readObject();
+            if(resp.getToken() == null) {
+                return null;
             }
-        } while (potentialUser == null);
-        System.out.println("Login Successful");
-        return potentialUser;
+            System.out.println("Token Generated");
+            return (User) resp.getStuff().get(0);
+            
+            // ^wat dis doins
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
     public static void logout() {
@@ -296,7 +286,7 @@ public class Client {
                 try {
                     currentUser = login();
                 } catch (Exception e) {
-                    System.out.println("Login unsuccessful. PLease try again.");
+                    System.out.println("Login unsuccessful. Please try again.");
                 }
             }
 
