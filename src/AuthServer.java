@@ -1,10 +1,11 @@
-import java.net.ServerSocket; // The server uses this to bind to a port
-import java.net.Socket; // Incoming connections are represented as sockets
-import java.util.*;
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.File; // The server uses this to bind to a port
+import java.io.FileReader; // Incoming connections are represented as sockets
+import java.io.FileWriter;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.*;
+
 
 public class AuthServer {
     // port the server will use to connect
@@ -28,7 +29,7 @@ public class AuthServer {
         return groups;
     }
     
-    public static boolean loadUserAndGroupList(File userFile) {
+    public synchronized static boolean loadUserAndGroupList(File userFile) {
         try {
             Scanner reader = new Scanner(new FileReader("users.txt"));
            
@@ -59,8 +60,33 @@ public class AuthServer {
         return false;
     }
 
-    public boolean saveUserList(File userFile) {
-        return false;
+    public synchronized boolean saveUserList(File userFile) {
+        try {
+            FileWriter w = new FileWriter(userFile);
+            w.write("");
+            HashMap<String, User> u = userList.getUserMap();
+            for(User user: u.values()){
+                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error saving userlist to file ->" + e.getMessage());
+            return false;
+        }
+    }
+    public synchronized boolean saveGroupList(File groupFile) {
+        try {
+            FileWriter w = new FileWriter(groupFile);
+            w.write("");
+            HashMap<String, Group> g = groups.getGroupMap();
+            for(String groupname: g.keySet()){
+                w.append(groupname + System.lineSeparator());
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error saving userlist to file ->" + e.getMessage());
+            return false;
+        }
     }
 
     public void listenOnPort(int port) {

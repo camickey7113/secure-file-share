@@ -30,4 +30,7 @@ public class GroupList implements java.io.Serializable {
     public synchronized Group getGroup(String groupname) {
         return groups.get(groupname);
     }
+    public synchronized HashMap<String, Group> getGroupMap() {
+        return groups;
+    }
 }
