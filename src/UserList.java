@@ -2,7 +2,7 @@ import java.util.*;
 
 public class UserList implements java.io.Serializable {
 
-    private HashMap<String, User> userMap = new HashMap<String, User>();
+    private static HashMap<String, User> userMap = new HashMap<String, User>();
 
     public synchronized boolean addUser(User user) {
         if (userMap.containsKey(user.getUsername())) {
@@ -22,11 +22,11 @@ public class UserList implements java.io.Serializable {
         return true;
     }
 
-    public synchronized boolean containsUser(String username) {
+    public synchronized static boolean containsUser(String username) {
         return userMap.containsKey(username);
     }
 
-    public synchronized User getUser(String username) {
+    public synchronized static User getUser(String username) {
         return userMap.get(username);
     }
 }

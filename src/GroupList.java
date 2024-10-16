@@ -1,7 +1,7 @@
 import java.util.*;
 
 public class GroupList implements java.io.Serializable {
-    private HashMap<String, Group> groups;
+    private static HashMap<String, Group> groups;
 
     public GroupList() {
         this.groups = new HashMap<String, Group>();
@@ -23,7 +23,7 @@ public class GroupList implements java.io.Serializable {
         return false;
     }
 
-    public boolean containsGroup(String groupName) {
+    public static boolean containsGroup(String groupName) {
         return groups.containsKey(groupName);
     }
 

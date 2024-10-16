@@ -246,15 +246,30 @@ public class Client {
             // construct list with user
             ArrayList<Object> list = new ArrayList<Object>();
             list.add(readCredentials());
+            //System.out.println("made it here");
             // send user to AS for verification
             // receive response
             try {
-                authOutput.writeObject(new Message("verify", null, list));
+                authOutput.writeObject(new Message("login", null, list));
+                //System.out.println("here now");
+                //String loginMessage = ((Message) authInput.readObject()).getCommand();
+                //System.out.println(loginMessage);
+                while(((Message) authInput.readObject()).getCommand().equals("login") != true){
+                   // System.out.println("here now !!!");
+                    potentialUser = null;
+                   // System.out.println("still here");
+                }
+                //System.out.println("here now again");
+                System.out.println(potentialUser.getUsername());
                 potentialUser = (User) ((Message) authInput.readObject()).getStuff().get(0);
+                
+                // ^wat dis doins
+                //System.out.println("now made it here");
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
         } while (potentialUser == null);
+        System.out.println("Login Successful");
         return potentialUser;
     }
 
