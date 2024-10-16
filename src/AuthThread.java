@@ -7,37 +7,43 @@ import java.util.*;
 public class AuthThread extends Thread {
     private AuthServer server;
     private final Socket socket;
-    private final ArrayList<User> userList;
 
-    public AuthThread(AuthServer server, Socket socket, ArrayList<User> userList) {
+    public AuthThread(AuthServer server, Socket socket) {
         this.server = server;
         this.socket = socket;
-        this.userList = userList;
     }
 
-	private Token generateToken(String username) {
-		if (username.equals("root")) {
-			return new Token(username, null); // root user, no group
-		} else {
-			String group = "group1"; // i just hard coded for now, will have to fix later
-			return new Token(username, group); // student with group
-		}
-	}
+    public Token generateToken(User user) {
+        Token newToken = new Token(user.getUsername(), user.getGroup());
+        return newToken;
 
-	private boolean authenticate(String username, String password){
-		for (User user: userList){
-			if (user.getUsername().equals(username) && user.getPassword().equals(password)){
-				return true;
-			}
-		}
-		return false;
-	}
+    }
 
     public boolean handleRootCommand(String command, Token token) {
         return false;
     }
 
+    // This function accepts a potential user object to be confirmed to exist in the
+    // AS. If the user is found and the provided password matches return true.
+    // Otherwise, return falsse.
+    public boolean authenticate(User user) {
+        if (server.getUserList().containsUser(user.getUsername()) && server.getUserList().getUser(user.getUsername()).getPassword().equals(user.getPassword())) {
+            System.out.println("Username and Password accepted.");
+            // if(!GroupList.containsGroup(user.getGroup())) {
+            //     System.out.println("We messed up");
+            //     return false;
+            // }
+            return true;
+        } else {
+            System.out.println("User and/or Group does not exist");
+            return false;
+        }
+    }
+
     public void run() {
+        for(String s : server.getUserList().userMap.keySet()) {
+            System.out.println(s);
+        }
         try {
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
@@ -73,22 +79,41 @@ public class AuthThread extends Thread {
             }
 
             // Loop to read messages
+            User authUser = null;
+
             Message msg = null;
-            int count = 0;
             do {
                 // read and print message
                 msg = (Message) input.readObject();
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
+                // read and print message
+                msg = (Message) input.readObject();
+                System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
-            // Write an ACK back to the sender
-            count++;
-            ArrayList<Object> list = new ArrayList<Object>();
-            list.add(new User("user1", "pass1", "group1"));
-            output.writeObject(new Message("Received message #" + count, null, list));
+                // find out who is the current user
+                if (msg.getCommand().equals("login")) {
+                    User user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
+                    // authenticate the user
+                    if (authenticate(user)) {
+                        System.out.println("check in run");
+                        authUser = server.getUserList().getUser(user.getUsername());
+                        // get user from the username in the msg
+                        Token t = generateToken(authUser);
+                        ArrayList<Object> stuff = new ArrayList<Object>();
+                        stuff.add(user);
+                        // send message with token back to client:
+                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        // WRITE THIS ^
+                    } else {
+                        output.writeObject(new Message(msg.getCommand(), null, null));
+                    }
+                }
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 
             // Close and cleanup
+            System.out
+                    .println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
             System.out
                     .println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
             socket.close();

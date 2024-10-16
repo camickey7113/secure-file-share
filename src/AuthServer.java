@@ -9,32 +9,36 @@ import java.io.IOException;
 public class AuthServer {
     // port the server will use to connect
     public static final int SERVER_PORT = 8765;
-    static BufferedReader reader;
     // list of all users in the system
-    static UserList userList;
-    static GroupList groups;
+    private static UserList userList;
+    private static GroupList groups;
     Group newGroup;
 
     private static AuthServer server;
 
     public AuthServer() {
-        this.userList = new UserList();
+        userList = new UserList();
+        groups = new GroupList();
+    }
+
+    public UserList getUserList() {
+        return userList;
     }
     
     public static boolean loadUserAndGroupList(File userFile) {
         try {
-            reader = new BufferedReader(new FileReader("users.txt"));
-            String userLine = reader.readLine();
+            Scanner reader = new Scanner(new FileReader("users.txt"));
            
-            while(userLine != null){
+            while(reader.hasNextLine()){
+                String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
-                
                 String username = users[0];
                 String password = users[1];
                 String group = users[2];
                 User user = new User(username, password, group);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
+                    System.out.println("check");
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }
@@ -47,7 +51,6 @@ public class AuthServer {
             }
             reader.close();
             return true;
-
         }
         catch(IOException e){
             e.printStackTrace();
@@ -101,7 +104,6 @@ public class AuthServer {
 
     public static void main(String[] args) {
         server = new AuthServer();
-        server.start();
         File usersFile = new File("users.txt");
         try{
            loadUserAndGroupList(usersFile);
@@ -109,5 +111,6 @@ public class AuthServer {
         catch(Exception e){
             System.out.println("Error Loading Users");
         }
+        server.start();
     }
 }
