@@ -123,6 +123,27 @@ public class AuthThread extends Thread {
                     }
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
+
+                case "assign":
+                    // confirm that group and user exist
+                    if (server.getGroupList().getGroup((String)msg.getStuff().get(1)) == null || server.getUserList().getUser((String)msg.getStuff().get(0)) == null) {
+                        stuff.add(false);
+                    } else {
+                        // get user object
+                        User assignee = server.getUserList().getUser((String)msg.getStuff().get(0));
+                        // remove user from old group
+                        server.getGroupList().getGroup(assignee.getGroup()).removeMember(assignee.getUsername());
+                        // change group field in user
+                        assignee.setGroup((String)msg.getStuff().get(1));
+                        // add user to new group
+                        server.getGroupList().getGroup((String)msg.getStuff().get(1)).addMember(assignee);
+                        // return success
+                        stuff.add(true);
+
+                    }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // change group in user object
+                    break;
                 
             }
         } catch (Exception e) {
