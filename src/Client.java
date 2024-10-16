@@ -97,7 +97,7 @@ public class Client {
             // send user to AS for verification
             authOutput.writeObject(new Message("verify", null, list));
             // receive response
-            t = (Token) ((Message) authInput.readObject()).getStuff().get(0);
+            t = (Token) ((Message) authInput.readObject()).getToken(); // stuck here
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -121,7 +121,7 @@ public class Client {
         // break up command string by spaces
         String[] split = line.split("\\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
-        Token t = new Token("testGroup1", "root");
+        Token t = token;
 
         // empty input?
         if (line.isEmpty())
@@ -225,9 +225,10 @@ public class Client {
 
     public static boolean handleResponse() {
         try {
-            Message authResp = (Message) (authInput).readObject();
+            Message authResp;
             Message resResp;
             if (currentUser.getUsername() == "root") {
+                authResp = (Message) (authInput).readObject();
                 switch (authResp.getCommand()) {
                     case "create":
                         // TODO root command
@@ -384,11 +385,13 @@ public class Client {
                         System.out.println("Permission has been revoked. Please contact admin.");
                         logout();
                         continue;
+                    } else {
+                        System.out.println("Successfully verified");
                     }
 
                     // input command
                     String inputs = readSomeText();
-                    switch (handleCommand(inputs, null)) {
+                    switch (handleCommand(inputs, t)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
                         case 1:
@@ -398,7 +401,7 @@ public class Client {
                         default:
                             throw new Exception("Something is VERY wrong...");
                     }
-
+                    System.out.println("inbetween");
                     handleResponse();
                 }
 

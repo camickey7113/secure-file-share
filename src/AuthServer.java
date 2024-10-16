@@ -91,7 +91,7 @@ public class AuthServer {
 
             while (true) {
                 sock = serverSock.accept(); // Accept an incoming connection
-                thread = new AuthThread(this, sock, userList); // Create a thread to handle this connection
+                thread = new AuthThread(this, sock); // Create a thread to handle this connection
                 thread.start(); // Fork the thread
             } // Loop to work on new connections while this
                 // the accept()ed connection is handled
