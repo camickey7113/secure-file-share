@@ -126,11 +126,15 @@ public class ResourceThread extends Thread {
                 case "release":
                     String directoryPath2 = "group" + File.separator + msg.getStuff().get(0);
                     File directory2 = new File(directoryPath2);
-                    for (File subfile : directory2.listFiles()) {
-                        subfile.delete();
+                    if(directory2.isDirectory()) {
+                        for (File subfile : directory2.listFiles()) {
+                            subfile.delete();
+                        }
+                        directory2.delete();
+                        stuff.add(true);
+                    } else {
+                        stuff.add(false);
                     }
-                    directory2.delete();
-                    stuff.add(true);
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
                 

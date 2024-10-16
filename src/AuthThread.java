@@ -62,23 +62,15 @@ public class AuthThread extends Thread {
                     String listgroup = (String) msg.getStuff().get(0);
                     //retrieving the members
                     ArrayList<String> members = new ArrayList<String>();
-                    System.out.println(listgroup);
-                    if(server.getGroupList().containsGroup(listgroup)) System.out.println("group key exists");
-                    for(String str : server.groups.groups.keySet()) {
-                        System.out.println(str);
-                    }
-                    System.out.println();
-                    for(Group gr : server.groups.groups.values()) {
-                        System.out.println(gr.getName());
-                    }
+
                     Group g = server.getGroupList().getGroup(listgroup);
                     if(g == null){
-                        //System.out.println("group is null");
                         stuff.add(false);
                         stuff.add("not a valid group");
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                         break;
                     }
+
                     stuff.add(true);
                     HashMap<String, User> m = g.getMembers().getUserMap();
                     //populate arraylist with usernames
@@ -113,15 +105,23 @@ public class AuthThread extends Thread {
                     break;
 
                 case "collect":
-                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) != null) return false;
-                    server.getGroupList().addGroup(new Group((String)(msg.getStuff()).get(0)));
-                    output.writeObject(new Message(msg.getCommand(), null, null));
+                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) != null) {
+                       stuff.add(false);
+                    } else {
+                        server.getGroupList().addGroup(new Group((String)(msg.getStuff()).get(0)));
+                        stuff.add(true);
+                    }
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "release":
-                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) == null) return false;
-                    server.getGroupList().removeGroup((String)(msg.getStuff()).get(0));
-                    output.writeObject(new Message(msg.getCommand(), null, null));
+                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) == null) {
+                        stuff.add(false);
+                    } else {
+                        server.getGroupList().removeGroup((String)(msg.getStuff()).get(0));
+                        stuff.add(true);
+                    }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
                 
             }

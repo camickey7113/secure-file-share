@@ -7,7 +7,7 @@ public class GroupList implements java.io.Serializable {
         this.groups = new HashMap<String, Group>();
     }
 
-    public boolean addGroup(Group group) {
+    public synchronized boolean addGroup(Group group) {
         if(!groups.containsKey(group.getName())){
             groups.put(group.getName(), group);
             return true;
@@ -15,7 +15,7 @@ public class GroupList implements java.io.Serializable {
         return false;
     }
     
-    public boolean removeGroup(String groupName) {
+    public synchronized boolean removeGroup(String groupName) {
         if(containsGroup(groupName)){
             groups.remove(groupName);
             return true;
@@ -23,11 +23,11 @@ public class GroupList implements java.io.Serializable {
         return false;
     }
 
-    public boolean containsGroup(String groupName) {
+    public synchronized boolean containsGroup(String groupName) {
         return groups.containsKey(groupName);
     }
 
-    public Group getGroup(String groupname) {
+    public synchronized Group getGroup(String groupname) {
         return groups.get(groupname);
     }
 }

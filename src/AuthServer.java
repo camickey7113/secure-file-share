@@ -37,7 +37,7 @@ public class AuthServer {
                 String users[] = userLine.split(",");
                 String username = users[0];
                 String password = users[1];
-                String group = users[2];
+                String group = users[2].trim();
                 User user = new User(username, password, group);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
@@ -48,8 +48,6 @@ public class AuthServer {
                 groups.getGroup(group).addMember(user);
                 // add the user to the global user list
                 userList.addUser(user);
-               
-     
             }
             reader.close();
             return true;
