@@ -164,7 +164,10 @@ public class ResourceThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-                
+                case "null":
+                    stuff.add(false);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());

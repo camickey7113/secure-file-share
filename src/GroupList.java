@@ -1,7 +1,7 @@
 import java.util.*;
 
 public class GroupList implements java.io.Serializable {
-    public HashMap<String, Group> groups;
+    private HashMap<String, Group> groups;
 
     public GroupList() {
         this.groups = new HashMap<String, Group>();
@@ -29,5 +29,13 @@ public class GroupList implements java.io.Serializable {
 
     public synchronized Group getGroup(String groupname) {
         return groups.get(groupname);
+    }
+
+    public synchronized ArrayList<String> getGroupNames() {
+        ArrayList<String> ret = new ArrayList<String>();
+        for(String s : groups.keySet()) {
+            ret.add(s);
+        }
+        return ret;
     }
 }

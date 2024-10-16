@@ -184,9 +184,16 @@ public class Client {
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        msg = new Message("release", null, stuff);
-                        resourceOutput.writeObject(msg);
-                        authOutput.writeObject(msg);
+                        authOutput.writeObject(new Message("empty", null, stuff));
+                        if ((boolean)((Message) authInput.readObject()).getStuff().get(0)) {
+                            msg = new Message("release", null, stuff);
+                            authOutput.writeObject(msg);
+                            resourceOutput.writeObject(msg);
+                        } else {
+                            msg = new Message("null", null, stuff);
+                            authOutput.writeObject(msg);
+                            resourceOutput.writeObject(msg);
+                        }
                         break;
 
                     case "assign":
@@ -203,7 +210,7 @@ public class Client {
                         break;
 
                     case "groups":
-                        authOutput.writeObject(new Message("list", null, null));
+                        authOutput.writeObject(new Message("groups", null, null));
                         break;
 
                     default:
@@ -291,6 +298,14 @@ public class Client {
                             System.out.println((String) authResp.getStuff().get(1));
                         }
                         break;
+                    
+                    case "groups":
+                        @SuppressWarnings("unchecked") 
+                        ArrayList<String> groups = (ArrayList<String>) authResp.getStuff().get(1);
+                        for (String s : groups) {
+                            System.out.println(s);
+                        }
+                        return (boolean)authResp.getStuff().get(0);
 
                     default:
                         return false;

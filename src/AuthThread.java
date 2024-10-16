@@ -129,6 +129,16 @@ public class AuthThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
+                case "empty":
+                    if (server.getGroupList().getGroup((String)msg.getStuff().get(0)).getMembers().hasMembers()) {
+                        stuff.add(false);
+                    } else {
+                        stuff.add(true);
+                    }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    stuff.remove(0);
+                    break;
+
                 case "release":
                     if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) == null) {
                         stuff.add(false);
@@ -159,6 +169,19 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     // change group in user object
                     break;
+
+                case "groups":
+                    // return list of groups
+                    stuff.add(true);
+                    stuff.add(server.getGroupList().getGroupNames());
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+
+                case "null":
+                    stuff.add(false);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    break;
+
                 
             }
         } catch (Exception e) {

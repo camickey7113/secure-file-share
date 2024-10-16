@@ -34,4 +34,8 @@ public class UserList implements java.io.Serializable {
     public synchronized HashMap<String, User> getUserMap(){
         return userMap;
     }
+
+    public synchronized boolean hasMembers() {
+        return !userMap.isEmpty();
+    }
 }
