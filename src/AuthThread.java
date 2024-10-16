@@ -62,8 +62,18 @@ public class AuthThread extends Thread {
                     String listgroup = (String) msg.getStuff().get(0);
                     //retrieving the members
                     ArrayList<String> members = new ArrayList<String>();
+                    System.out.println(listgroup);
+                    if(server.getGroupList().containsGroup(listgroup)) System.out.println("group key exists");
+                    for(String str : server.groups.groups.keySet()) {
+                        System.out.println(str);
+                    }
+                    System.out.println();
+                    for(Group gr : server.groups.groups.values()) {
+                        System.out.println(gr.getName());
+                    }
                     Group g = server.getGroupList().getGroup(listgroup);
                     if(g == null){
+                        //System.out.println("group is null");
                         stuff.add(false);
                         stuff.add("not a valid group");
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
@@ -84,31 +94,34 @@ public class AuthThread extends Thread {
                     User newUser = (User) msg.getStuff().get(0);
                     if(server.getUserList().addUser(newUser)){
                         System.out.println("User " + newUser.getUsername() + " added.");
-                        ArrayList<Object> confirmation = new ArrayList<Object>();
-                        confirmation.add("true");
-                        Message resp1 = new Message(null, null, confirmation);
+                        stuff.add(true);
+                    } else {
+                        stuff.add(false);
                     }
-    
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "delete":
-                    User oldUser = (User)msg.getStuff().get(0);
-                    if (server.getUserList().deleteUser(oldUser.getUsername())){
-                        System.out.println("User " + oldUser.getUsername() + " deleted.");
-                        ArrayList<Object> confirmation = new ArrayList<Object>();
-                        confirmation.add("true");
-                        Message resp1 = new Message(null, null, confirmation);    
+                    String oldUsername = (String) msg.getStuff().get(0);
+                    if (server.getUserList().deleteUser(oldUsername)){
+                        System.out.println("User " + oldUsername + " deleted.");
+                        stuff.add(true);
+                    } else {
+                        stuff.add(false);
                     }
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
                     if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) != null) return false;
                     server.getGroupList().addGroup(new Group((String)(msg.getStuff()).get(0)));
+                    output.writeObject(new Message(msg.getCommand(), null, null));
                     break;
 
                 case "release":
                     if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) == null) return false;
                     server.getGroupList().removeGroup((String)(msg.getStuff()).get(0));
+                    output.writeObject(new Message(msg.getCommand(), null, null));
                     break;
                 
             }

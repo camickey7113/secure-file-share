@@ -1,7 +1,7 @@
 import java.util.*;
 
 public class GroupList implements java.io.Serializable {
-    private HashMap<String, Group> groups;
+    public HashMap<String, Group> groups;
 
     public GroupList() {
         this.groups = new HashMap<String, Group>();

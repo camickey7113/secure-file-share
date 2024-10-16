@@ -11,8 +11,8 @@ public class AuthServer {
     public static final int SERVER_PORT = 8765;
     // list of all users in the system
     private static UserList userList;
-    private static GroupList groups;
-    Group newGroup;
+    public static GroupList groups;
+    //Group newGroup;
 
     private static AuthServer server;
 
@@ -41,7 +41,6 @@ public class AuthServer {
                 User user = new User(username, password, group);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
-                    System.out.println("check");
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }

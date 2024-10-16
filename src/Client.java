@@ -152,7 +152,7 @@ public class Client {
 
         // determine if user is root and switch accordingly
         try {
-            if (currentUser.getUsername() == "root") {
+            if (currentUser.getUsername().equals("root")) {
                 switch (split[0].toLowerCase()) {
                     case "create":
                         if (split[1].isEmpty() || split[2].isEmpty() || split[3].isEmpty()) return 0;
@@ -254,7 +254,7 @@ public class Client {
         try {
             Message authResp;
             Message resResp;
-            if (currentUser.getUsername() == "root") {
+            if (currentUser.getUsername().equals("root")) {
                 authResp = (Message) authInput.readObject();
                 switch (authResp.getCommand()) {
                     case "create":
@@ -275,7 +275,6 @@ public class Client {
                         return (boolean)authResp.getStuff().get(0);
 
                     case "list":
-                        authResp = (Message) authInput.readObject();
                         if ((boolean) authResp.getStuff().get(0)) {
                             @SuppressWarnings("unchecked")
 							ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
@@ -415,7 +414,7 @@ public class Client {
                         logout();
                         continue;
                     } else {
-                        System.out.println("Successfully verified");
+                        System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
                     }
 
                     // input command
@@ -434,7 +433,7 @@ public class Client {
                     System.out.println("Received command...");
                     System.out.println("Awaiting response...");
                     handleResponse();
-                    System.out.println("Received command...");
+                    System.out.println("Received response...");
                 }
 
             } catch (Exception e) {
