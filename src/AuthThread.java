@@ -84,9 +84,24 @@ public class AuthThread extends Thread {
 
                 case "create":
                     User newUser = (User) msg.getStuff().get(0);
+                    //Group newGroup = newUser.getGroup();
                     if(server.getUserList().addUser(newUser)){
                         System.out.println("User " + newUser.getUsername() + " added.");
-                        stuff.add(true);
+                        //stuff.add(true); add in later
+
+                        //if group assigning exists assign user to that group
+                        //otherwise create a new group
+                        if(server.getGroupList().containsGroup(newUser.getGroup())){
+                            Group existingGroup = server.getGroupList().getGroup(newUser.getGroup());
+                            existingGroup.addMember(newUser);
+                            stuff.add(true);
+                        }
+                        else {
+                            Group newGroup = new Group (newUser.getGroup());
+                            server.getGroupList().addGroup(newGroup);
+                            newGroup.addMember(newUser);
+                            stuff.add(true);
+                        }
                     } else {
                         stuff.add(false);
                     }
