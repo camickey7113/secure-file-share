@@ -3,7 +3,7 @@ import java.util.*;
 public class UserList implements java.io.Serializable {
 
     // make this private warning
-    public static HashMap<String, User> userMap = new HashMap<String, User>();
+    private HashMap<String, User> userMap = new HashMap<String, User>();
 
     public synchronized boolean addUser(User user) {
         if (userMap.containsKey(user.getUsername())) {

@@ -41,9 +41,6 @@ public class AuthThread extends Thread {
     }
 
     public void run() {
-        for(String s : server.getUserList().userMap.keySet()) {
-            System.out.println(s);
-        }
         try {
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
