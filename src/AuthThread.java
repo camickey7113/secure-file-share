@@ -19,8 +19,59 @@ public class AuthThread extends Thread {
 
     }
 
-    public boolean handleRootCommand(String command, Token token) {
-        return false;
+    public boolean handleCommand(Message msg, ObjectOutputStream output) {
+        ArrayList<Object> stuff = new ArrayList<Object>();
+        Token t = msg.getToken();
+       
+
+        try {
+            switch (msg.getCommand()) {
+                case "login", "verify":
+                    User user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
+                    // authenticate the user
+                    if (authenticate(user)) {
+                        User authUser = server.getUserList().getUser(user.getUsername());
+                        // get user from the username in the token
+                        t = generateToken(authUser);
+                        stuff.add(user);
+                        // send message with token back to client:
+                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                    } else {
+                        output.writeObject(new Message(msg.getCommand(), null, null));
+                    }
+                    break;
+
+                case "list":
+                    //getting the desired group from the message
+                    String listgroup = (String) msg.getStuff().get(0);
+                    //retrieving the members
+                    ArrayList<Object> members = new ArrayList<Object>();
+                    Group g = server.getGroupList().getGroup(listgroup);
+                    HashMap<String, User> m = g.getMembers().getUserMap();
+                    //populate arraylist with usernames
+                    
+
+                    Message resp = new Message(null, null, members);
+                    break;
+
+                case "create":
+                    break;
+
+                case "delete":
+                    break;
+
+                case "collect":
+                    break;
+
+                case "release":
+                    break;
+                
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        
+        return true;
     }
 
     // This function accepts a potential user object to be confirmed to exist in the
@@ -52,31 +103,14 @@ public class AuthThread extends Thread {
             // Loop to read messages
             User authUser = null;
 
-            Message msg = null;
+            Message token = null;
             do {
                 // read and print message
-                msg = (Message) input.readObject();
-                System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
+                token = (Message) input.readObject();
+                System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + token.getCommand());
 
-                // find out who is the current user
-                if (msg.getCommand().equals("login")) {
-                    User user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
-                    // authenticate the user
-                    if (authenticate(user)) {
-                        authUser = server.getUserList().getUser(user.getUsername());
-                        // get user from the username in the msg
-                        Token t = generateToken(authUser);
-                        ArrayList<Object> stuff = new ArrayList<Object>();
-                        stuff.add(user);
-                        // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
-                        // WRITE THIS ^
-                    } else {
-                        output.writeObject(new Message(msg.getCommand(), null, null));
-                    }
-                } else if (msg.getCommand().equals("verify")) output.writeObject(new Message(msg.getCommand(), new Token(null, "group1"), null));
 
-            } while (!msg.getCommand().toUpperCase().equals("EXIT"));
+            } while (!token.getCommand().toUpperCase().equals("EXIT"));
 
             // Close and cleanup
             System.out

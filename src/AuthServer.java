@@ -24,6 +24,9 @@ public class AuthServer {
     public UserList getUserList() {
         return userList;
     }
+    public GroupList getGroupList() {
+        return groups;
+    }
     
     public static boolean loadUserAndGroupList(File userFile) {
         try {
@@ -80,15 +83,7 @@ public class AuthServer {
             Socket sock = null;
             AuthThread thread = null;
 
-            // create root and test users
-            ArrayList<User> userList = new ArrayList<>();
-			userList.add(new User("root", "root", null)); 
-            userList.add(new User("user1", "pass1", "group1")); 
-            userList.add(new User("user2", "pass2", "group1"));
-			userList.add(new User("user3", "pass1", "group1")); 
-            userList.add(new User("user4", "pass2", "group1"));
-
-
+           
             while (true) {
                 sock = serverSock.accept(); // Accept an incoming connection
                 thread = new AuthThread(this, sock); // Create a thread to handle this connection

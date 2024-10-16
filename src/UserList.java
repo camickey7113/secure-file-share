@@ -30,4 +30,8 @@ public class UserList implements java.io.Serializable {
     public synchronized User getUser(String username) {
         return userMap.get(username);
     }
+
+    public synchronized HashMap<String, User> getUserMap(){
+        return userMap;
+    }
 }

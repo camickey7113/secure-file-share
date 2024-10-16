@@ -28,6 +28,7 @@ public class Client {
     private static String ResourceIP;
     // Current user
     private static User currentUser;
+    private static User newUser;
 
     public static Scanner scanner = new Scanner(System.in);
 
@@ -57,6 +58,15 @@ public class Client {
         }
         System.out.println("Successful connection to Authentication Server");
         return true;
+    }
+
+    public static User createUser(String username, String password, String group){
+        User newUser = new User(username, password, group);
+        if{//user does not already exist and adding  to the userlist return true){
+            return newUser;
+        }
+        return null;
+
     }
 
     public static boolean connectToResourceServer() {
@@ -146,6 +156,12 @@ public class Client {
                 switch (split[0].toLowerCase()) {
                     case "create":
                         // TODO root command
+                        if (split[1].isEmpty())
+                            return 0;
+                        String username = split[1];
+                        String password = split[2];
+                        String group = split[3];
+                        stuff.add(createUser(username, password, group));
                         break;
 
                     case "delete":
@@ -163,11 +179,16 @@ public class Client {
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("release", null, stuff));
+                        Message msg =
+                        resourceOutput.writeObject(msg);
+                        authOutput.writeObject();
                         break;
 
                     case "assign":
-                        // TODO root command
+                        if (split[1].isEmpty() || split[2].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        stuff.add(split[2]);
+                        resourceOutput
                         break;
 
                     case "list":
