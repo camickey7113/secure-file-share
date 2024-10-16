@@ -73,6 +73,7 @@ public class ResourceThread extends Thread {
                     ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group" + File.separator +  t.getGroup() + " ; ls");
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
+                    System.out.println("Sending back list message...");
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 

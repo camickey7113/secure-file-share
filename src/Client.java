@@ -62,10 +62,9 @@ public class Client {
 
     public static User createUser(String username, String password, String group){
         User newUser = new User(username, password, group);
-        if{//user does not already exist and adding  to the userlist return true){
-            return newUser;
-        }
-        return null;
+        
+        return newUser;
+      
 
     }
 
@@ -132,6 +131,7 @@ public class Client {
         String[] split = line.split("\\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = token;
+        Message msg = null;
 
         // empty input?
         if (line.isEmpty())
@@ -155,48 +155,54 @@ public class Client {
             if (currentUser.getUsername() == "root") {
                 switch (split[0].toLowerCase()) {
                     case "create":
-                        // TODO root command
-                        if (split[1].isEmpty())
-                            return 0;
+                        if (split[1].isEmpty() || split[2].isEmpty() || split[3].isEmpty()) return 0;
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
                         stuff.add(createUser(username, password, group));
+                        authOutput.writeObject(new Message("create", null, stuff));
                         break;
 
                     case "delete":
-                        // TODO root command
+                        if (split[1].isEmpty()) return 0;
+                        String name = split[1];
+                        stuff.add(name);
+                        authOutput.writeObject(new Message("delete", null, stuff));
                         break;
 
                     case "collect":
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("collect", null, stuff));
+                        msg = new Message("collect", null, stuff);
+                        resourceOutput.writeObject(msg);
+                        authOutput.writeObject(msg);
                         break;
 
                     case "release":
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        Message msg =
+                        msg = new Message("release", null, stuff);
                         resourceOutput.writeObject(msg);
-                        authOutput.writeObject();
+                        authOutput.writeObject(msg);
                         break;
 
                     case "assign":
                         if (split[1].isEmpty() || split[2].isEmpty()) return 0;
                         stuff.add(split[1]);
                         stuff.add(split[2]);
-                        resourceOutput
+                        authOutput.writeObject(new Message("assign", null, stuff));
                         break;
 
                     case "list":
-                        // TODO root command
+                        if (split[1].isEmpty()) return 0;
+                        stuff.add(split[1]);
+                        authOutput.writeObject(new Message("list", null, stuff));
                         break;
 
                     case "groups":
-                        // TODO root command
+                        authOutput.writeObject(new Message("list", null, null));
                         break;
 
                     default:
@@ -249,41 +255,43 @@ public class Client {
             Message authResp;
             Message resResp;
             if (currentUser.getUsername() == "root") {
-                authResp = (Message) (authInput).readObject();
+                authResp = (Message) authInput.readObject();
                 switch (authResp.getCommand()) {
                     case "create":
-                        // TODO root command
-                        break;
+                        return true;
 
                     case "delete":
-                        // TODO root command
-                        break;
+                        return true;
 
                     case "collect":
-                        resResp = (Message) (resourceInput).readObject();
-                        return true;// return (boolean)authResp.getStuff().get(0) &&
-                                    // (boolean)resResp.getStuff().get(0);
-                        // TODO root command
+                        resResp = (Message) resourceInput.readObject();
+                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "release":
-                        resResp = (Message) (resourceInput).readObject();
-                        return true;// return (boolean)authResp.getStuff().get(0) &&
-                                    // (boolean)resResp.getStuff().get(0);
-                        // TODO root command
+                        resResp = (Message) resourceInput.readObject();
+                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "assign":
-                        // TODO root command
-                        break;
+                        return (boolean)authResp.getStuff().get(0);
 
                     case "list":
-                        // TODO root command
+                        authResp = (Message) authInput.readObject();
+                        if ((boolean) authResp.getStuff().get(0)) {
+                            @SuppressWarnings("unchecked")
+							ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
+                            for(int i = 0; i < members.size(); i++){
+                                System.out.println(members.get(i));
+                            }
+                        } else {
+                            System.out.println((String) authResp.getStuff().get(1));
+                        }
                         break;
 
                     default:
                         return false;
                 }
             } else {
-                Message resp = (Message) (resourceInput).readObject();
+                Message resp = (Message) resourceInput.readObject();
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
@@ -412,6 +420,7 @@ public class Client {
 
                     // input command
                     String inputs = readSomeText();
+                    System.out.println("Awaiting command...");
                     switch (handleCommand(inputs, t)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
@@ -422,8 +431,10 @@ public class Client {
                         default:
                             throw new Exception("Something is VERY wrong...");
                     }
-                    System.out.println("inbetween");
+                    System.out.println("Received command...");
+                    System.out.println("Awaiting response...");
                     handleResponse();
+                    System.out.println("Received command...");
                 }
 
             } catch (Exception e) {
