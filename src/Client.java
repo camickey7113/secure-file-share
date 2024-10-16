@@ -263,6 +263,7 @@ public class Client {
         return 2;
     }
 
+    
     public static boolean handleResponse() {
         try {
             Message authResp;
@@ -405,6 +406,10 @@ public class Client {
         try {
             authOutput.writeObject(new Message("exit", null, null));
             resourceOutput.writeObject(new Message("exit", null, null));
+            authSock.close();
+            resourceSock.close();
+            currentUser = null;
+
         } catch (Exception e) {
             System.out.println("One or more servers was able to shut down, please try again.");
             return;
@@ -505,4 +510,6 @@ public class Client {
             return null;
         }
     }
+
+    
 }
