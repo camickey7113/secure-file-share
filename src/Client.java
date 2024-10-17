@@ -185,7 +185,6 @@ public class Client {
                             return 0;
                         stuff.add(split[1]);
                         authOutput.writeObject(new Message("empty", null, stuff));
-                        
                         if ((boolean)((Message) authInput.readObject()).getStuff().get(0)) {
                             msg = new Message("release", null, stuff);
                             authOutput.writeObject(msg);
@@ -308,7 +307,14 @@ public class Client {
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "assign":
-                        return (boolean)authResp.getStuff().get(0);
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully assigned user to group");
+                            return true;
+                        } else {
+                            System.out.println("Failed to assign user to group -> either group or user" +
+                            " is invalid");
+                            return false;
+                        }
 
                     case "list":
                         if ((boolean) authResp.getStuff().get(0)) {

@@ -166,6 +166,7 @@ public class AuthThread extends Thread {
                     // confirm that group and user exist
                     if (server.getGroupList().getGroup((String)msg.getStuff().get(1)) == null || server.getUserList().getUser((String)msg.getStuff().get(0)) == null) {
                         stuff.add(false);
+                        System.out.println("Cannot assign, either user or group are not valid.");
                     } else {
                         // get user object
                         User assignee = server.getUserList().getUser((String)msg.getStuff().get(0));
