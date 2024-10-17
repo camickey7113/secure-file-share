@@ -73,9 +73,13 @@ public class AuthServer {
 
     public void start() {
         try {
+            Scanner scanner = new Scanner(System.in);
+            int AuthPort;
             // This is basically just listens for new client connections
-            final ServerSocket serverSock = new ServerSocket(SERVER_PORT);
-
+            System.out.print("Enter Auth Server port you want to connect to: ");
+            AuthPort = scanner.nextInt();
+            final ServerSocket serverSock = new ServerSocket(AuthPort);
+            scanner.close();
             // A simple infinite loop to accept connections
             Socket sock = null;
             AuthThread thread = null;
