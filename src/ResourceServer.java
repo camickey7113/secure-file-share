@@ -20,7 +20,14 @@ public class ResourceServer {
     public void start() {
         try{
             // This is basically just listens for new client connections
-            final ServerSocket serverSock = new ServerSocket(SERVER_PORT);
+            Scanner scanner = new Scanner(System.in);
+            int ResourcePort;
+            // This is basically just listens for new client connections
+            System.out.print("Enter Resource Server port you want to connect to: ");
+            ResourcePort = scanner.nextInt();
+            final ServerSocket serverSock = new ServerSocket(ResourcePort);
+            scanner.close();
+           
             
             // A simple infinite loop to accept connections
             Socket sock = null;

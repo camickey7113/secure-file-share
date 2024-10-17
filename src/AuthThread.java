@@ -110,15 +110,24 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-                case "delete":
-                    String oldUsername = (String) msg.getStuff().get(0);
-                    if (server.getUserList().deleteUser(oldUsername)){
-                        server.saveUserList("users.txt");
-                        System.out.println("User " + oldUsername + " deleted.");
-                        stuff.add(true);
-                    } else {
+              case "delete":    
+                    String deletedUsername = (String) msg.getStuff().get(0);
+                
+                    if(server.getUserList().containsUser(deletedUsername)){
+                        User deletedUser = server.getUserList().getUser(deletedUsername);
+                        Group existingGroup = server.getGroupList().getGroup(deletedUser.getGroup());
+                        existingGroup.removeMember(deletedUser);
+                        if (server.getUserList().deleteUser(deletedUser)){
+                            System.out.println("User " + deletedUser.getUsername() + " deleted.");
+                       
+                            stuff.add(true);
+                        }
+                    }
+                    else{
+                        System.out.println("User doesn't exist!");
                         stuff.add(false);
                     }
+                   
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
@@ -171,7 +180,7 @@ public class AuthThread extends Thread {
                         // get user object
                         User assignee = server.getUserList().getUser((String)msg.getStuff().get(0));
                         // remove user from old group
-                        server.getGroupList().getGroup(assignee.getGroup()).removeMember(assignee.getUsername());
+                        server.getGroupList().getGroup(assignee.getGroup()).removeMember(assignee);
                         // change group field in user
                         assignee.setGroup((String)msg.getStuff().get(1));
                         // add user to new group
