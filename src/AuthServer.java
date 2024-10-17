@@ -123,12 +123,16 @@ public class AuthServer {
     public static void main(String[] args) {
         server = new AuthServer();
         File usersFile = new File("users.txt");
+        File groupsFile = new File("groups.txt");
         try{
            loadUserAndGroupList(usersFile);
         }
         catch(Exception e){
             System.out.println("Error Loading Users");
         }
+
+        AutoSaveThread autoSave = new AutoSaveThread(server, usersFile, groupsFile);
+        autoSave.start();
         server.start();
     }
 }
