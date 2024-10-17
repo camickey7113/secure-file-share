@@ -1,5 +1,6 @@
 import java.lang.Thread;
 import java.net.Socket;
+import java.io.File;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -171,6 +172,21 @@ public class AuthThread extends Thread {
 
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
+
+            File usersFile = new File("users.txt");
+            File groupsFile = new File("groups.txt");
+
+            if (server.saveUserList(usersFile)) {
+                System.out.println("User list saved successfully");
+            } else {
+                System.err.println("Failed to save user list");
+            }
+    
+            if (server.saveGroupList(groupsFile)) {
+                System.out.println("Group list saved successfully");
+            } else {
+                System.err.println("Failed to save group list");
+            }
 
             // Close and cleanup
             System.out
