@@ -192,6 +192,7 @@ public class Client {
                             resourceOutput.writeObject(msg);
                         } else {
                             msg = new Message("null", null, stuff);
+                            System.out.println("Group not released - not empty or doesn't exist");
                             authOutput.writeObject(msg);
                             resourceOutput.writeObject(msg);
                         }
@@ -264,6 +265,7 @@ public class Client {
         return 2;
     }
 
+    
     public static boolean handleResponse() {
         try {
             Message authResp;
@@ -272,21 +274,48 @@ public class Client {
                 authResp = (Message) authInput.readObject();
                 switch (authResp.getCommand()) {
                     case "create":
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Created new user.");
+                        } else {
+                            System.out.println("Failed to create new user.");
+                        }
                         return true;
 
                     case "delete":
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Deleted user.");
+                        } else {
+                            System.out.println("Failed to delete user.");
+                        }
                         return true;
 
                     case "collect":
                         resResp = (Message) resourceInput.readObject();
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully collected group.");
+                        } else {
+                            System.out.println("Failed to collect group.");
+                        }
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "release":
                         resResp = (Message) resourceInput.readObject();
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully released group.");
+                        } else {
+                            System.out.println("Failed to release group, not empty or doesn't exist.");
+                        }
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "assign":
-                        return (boolean)authResp.getStuff().get(0);
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully assigned user to group");
+                            return true;
+                        } else {
+                            System.out.println("Failed to assign user to group -> either group or user" +
+                            " is invalid");
+                            return false;
+                        }
 
                     case "list":
                         if ((boolean) authResp.getStuff().get(0)) {
@@ -406,6 +435,10 @@ public class Client {
         try {
             authOutput.writeObject(new Message("exit", null, null));
             resourceOutput.writeObject(new Message("exit", null, null));
+            authSock.close();
+            resourceSock.close();
+            currentUser = null;
+
         } catch (Exception e) {
             System.out.println("One or more servers was able to shut down, please try again.");
             return;
@@ -448,7 +481,7 @@ public class Client {
 
                     // input command
                     String inputs = readSomeText();
-                    System.out.println("Awaiting command...");
+                    // System.out.println("Awaiting command...");
                     switch (handleCommand(inputs, t)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
@@ -459,10 +492,10 @@ public class Client {
                         default:
                             throw new Exception("Something is VERY wrong...");
                     }
-                    System.out.println("Received command...");
-                    System.out.println("Awaiting response...");
+                    // System.out.println("Received command...");
+                    // System.out.println("Awaiting response...");
                     handleResponse();
-                    System.out.println("Received response...");
+                    // System.out.println("Received response...");
                 }
 
             } catch (Exception e) {
@@ -506,4 +539,6 @@ public class Client {
             return null;
         }
     }
+
+    
 }

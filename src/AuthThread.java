@@ -87,6 +87,7 @@ public class AuthThread extends Thread {
                     //Group newGroup = newUser.getGroup();
                     if(server.getUserList().addUser(newUser)){
                         System.out.println("User " + newUser.getUsername() + " added.");
+                        server.saveUserList("users.txt");
                         //stuff.add(true); add in later
 
                         //if group assigning exists assign user to that group
@@ -100,6 +101,7 @@ public class AuthThread extends Thread {
                             Group newGroup = new Group (newUser.getGroup());
                             server.getGroupList().addGroup(newGroup);
                             newGroup.addMember(newUser);
+                            server.saveGroupList("groups.txt");
                             stuff.add(true);
                         }
                     } else {
@@ -108,25 +110,24 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-                case "delete":
-                    System.out.println("first here");
+              case "delete":    
                     String deletedUsername = (String) msg.getStuff().get(0);
-
+                
                     if(server.getUserList().containsUser(deletedUsername)){
                         User deletedUser = server.getUserList().getUser(deletedUsername);
                         Group existingGroup = server.getGroupList().getGroup(deletedUser.getGroup());
                         existingGroup.removeMember(deletedUser);
                         if (server.getUserList().deleteUser(deletedUser)){
                             System.out.println("User " + deletedUser.getUsername() + " deleted.");
-                        
+                       
                             stuff.add(true);
-                        } 
+                        }
                     }
                     else{
                         System.out.println("User doesn't exist!");
                         stuff.add(false);
                     }
-                    
+                   
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
@@ -135,13 +136,17 @@ public class AuthThread extends Thread {
                        stuff.add(false);
                     } else {
                         server.getGroupList().addGroup(new Group((String)(msg.getStuff()).get(0)));
+                        server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "empty":
-                    if (server.getGroupList().getGroup((String)msg.getStuff().get(0)).getMembers().hasMembers()) {
+                    Group e = server.getGroupList().getGroup((String)msg.getStuff().get(0));
+                    if (e == null){
+                        stuff.add(false);
+                    } else if (e.getMembers().hasMembers()) {
                         stuff.add(false);
                     } else {
                         stuff.add(true);
@@ -151,10 +156,16 @@ public class AuthThread extends Thread {
                     break;
 
                 case "release":
-                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) == null) {
+                    System.out.println("releasing...");
+                    Group delGroup = server.getGroupList().getGroup((String)msg.getStuff().get(0));
+                    //some redundant error checking
+                    if(delGroup == null) { //if the group doesnt exist
+                        stuff.add(false);
+                    } if(delGroup.getMembers().size() != 0){ //if the group isnt empty
                         stuff.add(false);
                     } else {
                         server.getGroupList().removeGroup((String)(msg.getStuff()).get(0));
+                        server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
@@ -164,6 +175,7 @@ public class AuthThread extends Thread {
                     // confirm that group and user exist
                     if (server.getGroupList().getGroup((String)msg.getStuff().get(1)) == null || server.getUserList().getUser((String)msg.getStuff().get(0)) == null) {
                         stuff.add(false);
+                        System.out.println("Cannot assign, either user or group are not valid.");
                     } else {
                         // get user object
                         User assignee = server.getUserList().getUser((String)msg.getStuff().get(0));
@@ -173,6 +185,7 @@ public class AuthThread extends Thread {
                         assignee.setGroup((String)msg.getStuff().get(1));
                         // add user to new group
                         server.getGroupList().getGroup((String)msg.getStuff().get(1)).addMember(assignee);
+                        server.saveUserList("users.txt");
                         // return success
                         stuff.add(true);
 

@@ -38,4 +38,8 @@ public class GroupList implements java.io.Serializable {
         }
         return ret;
     }
+
+    public synchronized HashMap<String, Group> getGroupMap(){
+        return groups;
+    }
 }
