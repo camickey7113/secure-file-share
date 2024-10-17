@@ -14,11 +14,11 @@ public class UserList implements java.io.Serializable {
         return true;
     }
 
-    public synchronized boolean deleteUser(String username) {
-        if (!userMap.containsKey(username)){
+    public synchronized boolean deleteUser(User user) {
+        if (!userMap.containsKey(user.getUsername())){
             return false;
         } else {
-            userMap.remove(username);
+            userMap.remove(user.getUsername());
         }
         return true;
     }

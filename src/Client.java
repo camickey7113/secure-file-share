@@ -169,6 +169,7 @@ public class Client {
                         String name = split[1];
                         stuff.add(name);
                         authOutput.writeObject(new Message("delete", null, stuff));
+                        resourceOutput.writeObject(new Message("delete", null, stuff));
                         break;
 
                     case "collect":

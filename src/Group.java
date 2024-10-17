@@ -36,11 +36,9 @@ public class Group implements java.io.Serializable {
     }
 
     public boolean removeMember(User member) {
-        return members.deleteUser(member.getUsername());
+        return members.deleteUser(member);
     }
 
-    public boolean removeMember(String username) {
-        return members.deleteUser(username);
-    }
+    
 
 }
