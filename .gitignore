@@ -1,2 +1,4 @@
 *.class
-/src/group/!.empty
+!/src/group/.empty
+/src/group/*.txt
+/src/group/*
