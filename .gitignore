@@ -1,3 +1,2 @@
 *.class
-/src/group/*
 /src/group/!.empty
