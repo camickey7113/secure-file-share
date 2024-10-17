@@ -112,14 +112,13 @@ public class AuthThread extends Thread {
 
               case "delete":    
                     String deletedUsername = (String) msg.getStuff().get(0);
-                
                     if(server.getUserList().containsUser(deletedUsername)){
                         User deletedUser = server.getUserList().getUser(deletedUsername);
                         Group existingGroup = server.getGroupList().getGroup(deletedUser.getGroup());
                         existingGroup.removeMember(deletedUser);
                         if (server.getUserList().deleteUser(deletedUser)){
                             System.out.println("User " + deletedUser.getUsername() + " deleted.");
-                       
+                            server.saveUserList("users.txt");
                             stuff.add(true);
                         }
                     }

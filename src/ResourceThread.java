@@ -70,7 +70,8 @@ public class ResourceThread extends Thread {
         try {
             switch (msg.getCommand()) {
                 case "list":
-                    ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group" + File.separator +  t.getGroup() + " ; ls");
+                    System.out.println("bash " + "-c " + "cd group" + File.separator +  t.getGroup() + "; ls");
+                    ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group" + File.separator +  t.getGroup() + "; ls");
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     System.out.println("Sending back list message...");
