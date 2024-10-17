@@ -185,12 +185,14 @@ public class Client {
                             return 0;
                         stuff.add(split[1]);
                         authOutput.writeObject(new Message("empty", null, stuff));
+                        
                         if ((boolean)((Message) authInput.readObject()).getStuff().get(0)) {
                             msg = new Message("release", null, stuff);
                             authOutput.writeObject(msg);
                             resourceOutput.writeObject(msg);
                         } else {
                             msg = new Message("null", null, stuff);
+                            System.out.println("Group not released - not empty or doesn't exist");
                             authOutput.writeObject(msg);
                             resourceOutput.writeObject(msg);
                         }
@@ -272,17 +274,37 @@ public class Client {
                 authResp = (Message) authInput.readObject();
                 switch (authResp.getCommand()) {
                     case "create":
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Created new user.");
+                        } else {
+                            System.out.println("Failed to create new user.");
+                        }
                         return true;
 
                     case "delete":
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Deleted user.");
+                        } else {
+                            System.out.println("Failed to delete user.");
+                        }
                         return true;
 
                     case "collect":
                         resResp = (Message) resourceInput.readObject();
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully collected group.");
+                        } else {
+                            System.out.println("Failed to collect group.");
+                        }
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "release":
                         resResp = (Message) resourceInput.readObject();
+                        if((boolean)authResp.getStuff().get(0)){
+                            System.out.println("Succesfully released group.");
+                        } else {
+                            System.out.println("Failed to release group, not empty or doesn't exist.");
+                        }
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "assign":
@@ -452,7 +474,7 @@ public class Client {
 
                     // input command
                     String inputs = readSomeText();
-                    System.out.println("Awaiting command...");
+                    // System.out.println("Awaiting command...");
                     switch (handleCommand(inputs, t)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
@@ -463,10 +485,10 @@ public class Client {
                         default:
                             throw new Exception("Something is VERY wrong...");
                     }
-                    System.out.println("Received command...");
-                    System.out.println("Awaiting response...");
+                    // System.out.println("Received command...");
+                    // System.out.println("Awaiting response...");
                     handleResponse();
-                    System.out.println("Received response...");
+                    // System.out.println("Received response...");
                 }
 
             } catch (Exception e) {

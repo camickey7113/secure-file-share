@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 
 public class AuthServer {
@@ -28,9 +29,9 @@ public class AuthServer {
         return groups;
     }
     
-    public static boolean loadUserAndGroupList(File userFile) {
+    public static boolean loadUserAndGroupList(File userFile, File groupFile) {
         try {
-            Scanner reader = new Scanner(new FileReader("users.txt"));
+            Scanner reader = new Scanner(userFile);
            
             while(reader.hasNextLine()){
                 String userLine = reader.nextLine();
@@ -50,6 +51,19 @@ public class AuthServer {
                 userList.addUser(user);
             }
             reader.close();
+            //sanity check our groups list file
+            reader = new Scanner(groupFile);
+           
+            while(reader.hasNextLine()){
+                String group = reader.nextLine();
+                group.trim();
+                // if the group does not exist, create it and add to global group list
+                if(!groups.containsGroup(group)){
+                    Group newGroup = new Group(group);
+                    groups.addGroup(newGroup);
+                }
+            }
+            reader.close();
             return true;
         }
         catch(IOException e){
@@ -59,8 +73,35 @@ public class AuthServer {
         return false;
     }
 
-    public boolean saveUserList(File userFile) {
-        return false;
+    public synchronized boolean saveUserList(String userFile) {
+        try {
+            FileWriter w = new FileWriter(userFile);
+            w.write("");
+            HashMap<String, User> u = userList.getUserMap();
+            for(User user: u.values()){
+                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+            }
+            w.close();
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error saving userlist to file ->" + e.getMessage());
+            return false;
+        }
+    }
+    public synchronized boolean saveGroupList(String groupFile) {
+        try {
+            FileWriter w = new FileWriter(groupFile);
+            w.write("");
+            HashMap<String, Group> g = groups.getGroupMap();
+            for(String groupname: g.keySet()){
+                w.append(groupname + System.lineSeparator());
+            }
+            w.close();
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error saving userlist to file ->" + e.getMessage());
+            return false;
+        }
     }
 
     public void listenOnPort(int port) {
@@ -97,8 +138,9 @@ public class AuthServer {
     public static void main(String[] args) {
         server = new AuthServer();
         File usersFile = new File("users.txt");
+        File groupFile = new File("groups.txt");
         try{
-           loadUserAndGroupList(usersFile);
+           loadUserAndGroupList(usersFile, groupFile);
         }
         catch(Exception e){
             System.out.println("Error Loading Users");
