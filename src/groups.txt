@@ -1,3 +1,4 @@
+dummy2
 null
 newgroup5
 group3

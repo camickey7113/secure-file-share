@@ -70,12 +70,19 @@ public class ResourceThread extends Thread {
         try {
             switch (msg.getCommand()) {
                 case "list":
-                    System.out.println("bash " + "-c " + "cd group" + File.separator +  t.getGroup() + "; ls");
                     ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd group" + File.separator +  t.getGroup() + "; ls");
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     System.out.println("Sending back list message...");
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
+
+                    // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
+                    // if(directory.isDirectory()) {
+                    //     String[] files = directory.list();
+                    //     stuff.add(files);
+                    // }
+                    // System.out.println("Sending back list message...");
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "upload":

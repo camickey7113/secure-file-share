@@ -1,3 +1,4 @@
+dummy2,dummy2,newgroup5
 root,root,null
 gjm55,secret4,group3
 testdummy,testdummypass,newgroup5
