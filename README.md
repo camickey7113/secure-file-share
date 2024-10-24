@@ -1,2 +1,2 @@
-Please see the [Phase 2 description](desc/phase_2.pdf) for details.
+Please see the [Phase 3 description](desc/phase_3.pdf) for details.
 
