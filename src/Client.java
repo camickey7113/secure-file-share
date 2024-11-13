@@ -60,8 +60,8 @@ public class Client {
         return true;
     }
 
-    public static User createUser(String username, String password, String group){
-        User newUser = new User(username, password, group);
+    public static User createUser(String username, String password, String group, String salt){
+        User newUser = new User(username, password, group, salt);
         
         return newUser;
       
@@ -159,7 +159,8 @@ public class Client {
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
-                        stuff.add(createUser(username, password, group));
+                        String salt = split[4];
+                        stuff.add(createUser(username, password, group, salt));
                         authOutput.writeObject(new Message("create", null, stuff));
                         resourceOutput.writeObject(new Message("create", null, stuff));
                         break;
@@ -533,7 +534,7 @@ public class Client {
             System.out.print("Password: ");
             String password = in.readLine();
 
-            return new User(username, password, null);
+            return new User(username, password, null, null);
         } catch (Exception e) {
             // Uh oh...
             return null;

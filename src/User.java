@@ -7,15 +7,18 @@ public class User implements java.io.Serializable {
     private String hashedPassword;
     private String group; 
 
-    public User(String username, String hashedPassword, String group) {
+    public User(String username, String hashedPassword, String group, String salt) {
         this.username = username;
         this.hashedPassword = hashedPassword;
+        
         // set group to null if the user is root. 
         if (username.equals("root")){
             this.group = null; // root user, no group 
+            this.salt = null;
         }
         else{
             this.group = group; //student 
+            this.salt = salt;
         }
 
     }

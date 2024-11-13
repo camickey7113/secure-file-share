@@ -264,4 +264,25 @@ public class AuthThread extends Thread {
             e.printStackTrace(System.err);
         }
     }
+
+    //-------------------------------------------------------------------//
+    //--------------------------T1 Implementation------------------------//
+
+    public User hashPassword(User originalUser){
+        //This method hashes the password of the user created and adds it to the users.txt file
+        //take user created from "create"
+        //extract password
+        //hash said password
+        //return new user with hashed password
+        return null;
+    }
+
+    public boolean checkHashedPassword(String password){
+        //check the password that the user inputs
+        //hash the password that was input
+        //if the hashed password matches what's in users.txt
+        //then authenticate, otherwise deny access
+        
+        return false;
+    }
 }
