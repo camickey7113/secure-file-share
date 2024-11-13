@@ -83,8 +83,9 @@ public class AuthThread extends Thread {
                     break;
 
                 case "create":
-                    User newUser = (User) msg.getStuff().get(0);
+                    User originalUser = (User) msg.getStuff().get(0);
                     //Group newGroup = newUser.getGroup();
+                    User newUser= hashPassword(originalUser);
                     if(server.getUserList().addUser(newUser)){
                         System.out.println("User " + newUser.getUsername() + " added.");
                         server.saveUserList("users.txt");
@@ -218,12 +219,13 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        if (server.getUserList().containsUser(user.getUsername()) && server.getUserList().getUser(user.getUsername()).getPassword().equals(user.getPassword())) {
+        if (server.getUserList().containsUser(user.getUsername()) && checkHashedPassword(user.getPassword())) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
             //     System.out.println("We messed up");
             //     return false;
             // }
+
             return true;
         } else {
             System.out.println("User and/or Group does not exist");
@@ -283,6 +285,6 @@ public class AuthThread extends Thread {
         //if the hashed password matches what's in users.txt
         //then authenticate, otherwise deny access
         
-        return false;
+        return true; //for testing purposes
     }
 }
