@@ -1,3 +1,4 @@
+//package org.mindrot.jbcrypt;
 import java.lang.Thread;
 import java.net.Socket;
 import java.security.Security;
@@ -7,6 +8,10 @@ import java.util.*;
 import java.security.*;
 import java.security.spec.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.mindrot.jbcrypt.BCrypt;
+
+
+
 
 
 public class AuthThread extends Thread {
@@ -282,7 +287,12 @@ public class AuthThread extends Thread {
         //extract password
         //hash said password
         //return new user with hashed password
-        return null;
+        String salt = BCrypt.gensalt();
+        String saltedPassword = BCrypt.hashpw(originalUser.getPassword(), salt);
+        User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), salt);
+
+        return saltedUser;
+        // return null;
     }
 
     public boolean checkHashedPassword(String password){
