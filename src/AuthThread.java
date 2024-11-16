@@ -1,8 +1,13 @@
 import java.lang.Thread;
 import java.net.Socket;
+import java.security.Security;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
+import java.security.*;
+import java.security.spec.*;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 
 public class AuthThread extends Thread {
     private AuthServer server;
@@ -236,6 +241,7 @@ public class AuthThread extends Thread {
     public void run() {
         try {
             // Print incoming message
+            Security.addProvider(new BouncyCastleProvider()); 
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
