@@ -30,7 +30,32 @@ public class Client {
     private static User currentUser;
     private static User newUser;
 
+    public final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+
     public static Scanner scanner = new Scanner(System.in);
+
+    static String provider = BouncyCastleProvider.PROVIDER_NAME;
+
+    //Symmetric Encryption
+    public static byte[][] encyptSendMsg(SecretKey AESkey, Message msg){
+        Cipher aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", provider); 
+        aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+        byte[] nonsense = msg.serialize();
+        byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
+        return ret;
+    }
+
+    //takes a generic serializable object and then turns it into a byte array for encryption
+    public byte[] serialize() throws IOException{ 
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(this);
+            }
+            return b.toByteArray();
+        }
+    }
+
+
 
     public static boolean connectToAuthServer() {
         System.out.print("Enter authentication server name: ");
@@ -239,7 +264,9 @@ public class Client {
                             }
                         }
                         stuff.add(fileData);
-                        resourceOutput.writeObject(new Message("upload", t, stuff));
+                        
+
+                        resourceOutput.writeObject();
                         break;
 
                     case "download":
@@ -448,6 +475,8 @@ public class Client {
     }
 
     public static void main(String[] args) {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
         // connect to AS and RS
         if (connectToAuthServer() && connectToResourceServer()) {
             System.out.println("Success! Both servers have connected!\n");

@@ -7,6 +7,7 @@ public class Message implements java.io.Serializable {
     private ArrayList<Object> stuff;
     
     // Message Constructors
+    
     // public Message(String cmd){
     //     this.command = cmd;
     //     stuff = new ArrayList<Object>();
