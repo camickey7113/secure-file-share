@@ -229,7 +229,7 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        if (server.getUserList().containsUser(user.getUsername()) && checkHashedPassword(user.getPassword())) {
+        if (server.getUserList().containsUser(user.getUsername()) && checkHashedPassword(user, user.getPassword())) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
             //     System.out.println("We messed up");
@@ -295,12 +295,16 @@ public class AuthThread extends Thread {
         // return null;
     }
 
-    public boolean checkHashedPassword(String password){
+    public boolean checkHashedPassword(User unverifiedUser, String password){
         //check the password that the user inputs
         //hash the password that was input
         //if the hashed password matches what's in users.txt
         //then authenticate, otherwise deny access
-        
-        return true; //for testing purposes
+        String salt = unverifiedUser.getSalt(); //get the public salt
+        String hashedPassword = BCrypt.hashpw(password, salt); //hash the input password with the salt
+        if(hashedPassword.equals(unverifiedUser.getPassword())){ //if it matches the hashed password of the user and the hash of the input
+            return true; //allow access
+        }
+        return false; //deny access
     }
 }
