@@ -32,39 +32,53 @@ public class AuthServer {
     public static boolean loadUserAndGroupList(File userFile, File groupFile) {
         try {
             Scanner reader = new Scanner(userFile);
-           
+            // System.out.println("Here 1");
             while(reader.hasNextLine()){
                 String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
                 String username = users[0];
                 String password = users[1];
                 String group = users[2].trim();
+                // System.out.println("Here 2");
                 String salt = users[3];
+                // System.out.println("Here 3");
                 User user = new User(username, password, group, salt);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
+                    // System.out.println("Here 4");
                 }
                 // add the user to their group
                 groups.getGroup(group).addMember(user);
                 // add the user to the global user list
+                // System.out.println("Here 5");
                 userList.addUser(user);
+                // System.out.println("Here 6");
             }
+            // System.out.println("Here 7");
             reader.close();
+            // System.out.println("Here 8");
             //sanity check our groups list file
             reader = new Scanner(groupFile);
+            // System.out.println("Here 9");
            
             while(reader.hasNextLine()){
                 String group = reader.nextLine();
+                // System.out.println("Here 7");
                 group.trim();
+                // System.out.println("Here 8");
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
+                    // System.out.println("Here 9");
                     Group newGroup = new Group(group);
+                    // System.out.println("Here 10");
                     groups.addGroup(newGroup);
+                    // System.out.println("Here 11");
                 }
             }
             reader.close();
+            // System.out.println("Here 12");
             return true;
         }
         catch(IOException e){
