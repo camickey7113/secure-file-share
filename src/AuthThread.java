@@ -283,7 +283,7 @@ public class AuthThread extends Thread {
 
             Message msg = null;
 
-            //diffiehellman bullshit
+            //diffie hellman bullshit
             
             do {
                 // read and print message
