@@ -98,7 +98,7 @@ public class Client {
     }
 
     public static User createUser(String username, String password, String group){
-        User newUser = new User(username, password, group);
+        User newUser = new User(username, password, group, null);
         return newUser;
     }
 
