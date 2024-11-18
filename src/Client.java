@@ -160,7 +160,7 @@ public class Client {
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
-                        String salt = "$2b$00$0000000000000000000000"; //ungenerated salt
+                        String salt = null; //ungenerated salt
                         stuff.add(createUser(username, password, group, salt));
                         authOutput.writeObject(new Message("create", null, stuff));
                         resourceOutput.writeObject(new Message("create", null, stuff));
@@ -535,7 +535,7 @@ public class Client {
             System.out.print("Password: ");
             String password = in.readLine();
 
-            return new User(username, password, null, "$2b$00$0000000000000000000000");
+            return new User(username, password, null, null);
         } catch (Exception e) {
             // Uh oh...
             return null;
