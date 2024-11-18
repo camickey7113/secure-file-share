@@ -1,2 +1,2 @@
-root,root,null,null
-user1,pass1,group1,salt
+root,root,null,500
+user1,pass1,group1,200

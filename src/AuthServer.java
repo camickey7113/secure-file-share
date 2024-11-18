@@ -40,7 +40,7 @@ public class AuthServer {
                 String password = users[1];
                 String group = users[2].trim();
                 // System.out.println("Here 2");
-                String salt = users[3];
+                int salt = Integer.parseInt(users[3]);
                 // System.out.println("Here 3");
                 User user = new User(username, password, group, salt);
                 // if the group does not exist, create it and add to global group list

@@ -3,18 +3,18 @@
 
 public class User implements java.io.Serializable {
     private String username;
-    private String salt;
+    private int salt;
     private String hashedPassword;
     private String group; 
 
-    public User(String username, String hashedPassword, String group, String salt) {
+    public User(String username, String hashedPassword, String group, int salt) {
         this.username = username;
         this.hashedPassword = hashedPassword;
         
         // set group to null if the user is root. 
         if (username.equals("root")){
             this.group = null; // root user, no group 
-            this.salt = null;
+            this.salt = 0;
         }
         else{
             this.group = group; //student 
@@ -28,10 +28,10 @@ public class User implements java.io.Serializable {
         return this.username;
     }
 
-    public String setSalt(String salt){
+    public int setSalt(int salt){
         return this.salt = salt;
     }
-    public String getSalt() { 
+    public int getSalt() { 
         return this.salt; 
     }
 
