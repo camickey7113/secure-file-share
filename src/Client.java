@@ -94,6 +94,7 @@ public class Client {
 
     // returns a Token that corresponds to the current user or null if the current
     // user was removed from the system after they already logged in
+    @Deprecated
     public static Token verifyUser() {
         Token t = null;
         // construct list with user
@@ -123,7 +124,7 @@ public class Client {
     // 0 : invalid command
     // 1 : empty/logout command
     // 2 : valid command
-    public static int handleCommand(String line, Token token) {
+    public static int handleCommand(String line, Token token, byte[] signature) {
         // break up command string by spaces
         String[] split = line.split("\\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
@@ -218,7 +219,7 @@ public class Client {
             } else {
                 switch (split[0]) {
                     case "list":
-                        resourceOutput.writeObject(new Message("list", t, null));
+                        resourceOutput.writeObject(new Message("list", t, signature, null));
                         break;
 
                     case "upload":
@@ -236,13 +237,13 @@ public class Client {
                             }
                         }
                         stuff.add(fileData);
-                        resourceOutput.writeObject(new Message("upload", t, stuff));
+                        resourceOutput.writeObject(new Message("upload", t, signature, stuff));
                         break;
 
                     case "download":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("download", t, stuff));
+                        resourceOutput.writeObject(new Message("download", t, signature, stuff));
                         break;
 
                     default:
@@ -251,7 +252,7 @@ public class Client {
                     case "delete":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("delete", t, stuff));
+                        resourceOutput.writeObject(new Message("delete", t, signature, stuff));
                         break;
                 }
             }
@@ -402,9 +403,8 @@ public class Client {
     }
 
     // Prompts the user for a username and password
-    // Upon successful login, returns a User object that may or may not exist in the
-    // AS user list
-    public static User login() {
+    // Upon successful login, returns a Message object containing a user's details
+    public static Message login() {
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
         list.add(readCredentials());
@@ -419,7 +419,8 @@ public class Client {
                 return null;
             }
             System.out.println("Token Generated");
-            return (User) resp.getStuff().get(0);
+            currentUser = (User) resp.getStuff().get(0);
+            return resp;
             
             // ^wat dis doins
         } catch (Exception e) {
@@ -458,9 +459,14 @@ public class Client {
         }
         while (true) {
             // login user
+            Message secret = null;
+            Token t = null;
+            byte[] s = null;
             while (currentUser == null) {
                 try {
-                    currentUser = login();
+                    secret = login();
+                    t = secret.getToken();
+                    s = secret.getSignature();
                 } catch (Exception e) {
                     System.out.println("Login unsuccessful. Please try again.");
                 }
@@ -469,8 +475,6 @@ public class Client {
             // loop to accept commands
             Message msg;
             try {
-                Token t = verifyUser();
-                
                 while (currentUser != null) {
                     // authenticate user
                     // if unable to verify, user will need to re-login
@@ -485,7 +489,7 @@ public class Client {
                     // input command
                     String inputs = readSomeText();
                     // System.out.println("Awaiting command...");
-                    switch (handleCommand(inputs, t)) {
+                    switch (handleCommand(inputs, t, s)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
                         case 1:

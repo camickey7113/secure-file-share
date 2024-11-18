@@ -27,7 +27,6 @@ public class AuthThread extends Thread {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
-        Message m = null;
 
         try {
             switch (msg.getCommand()) {
@@ -40,11 +39,11 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // create signature
-                        byte[] signature = sign(hashToken(m.getToken()), server.getPrivateKey());
+                        byte[] signature = sign(hashToken(t), server.getPrivateKey());
                         // send message with token back to client:
-                        m = new Message(msg.getCommand(), t, signature, stuff);
+                        output.writeObject(new Message(msg.getCommand(), t, signature, stuff));
                     } else {
-                        m = new Message(msg.getCommand(), null, null);
+                        output.writeObject(new Message(msg.getCommand(), null, null));
                     }
                     break;
                     
@@ -57,9 +56,9 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        m = new Message(msg.getCommand(), t, stuff);
+                        output.writeObject(new Message(msg.getCommand(), t, stuff));
                     } else {
-                        m = new Message(msg.getCommand(), null, null);
+                        output.writeObject(new Message(msg.getCommand(), null, null));
                     }
                     break;
 
@@ -73,7 +72,7 @@ public class AuthThread extends Thread {
                     if(g == null){
                         stuff.add(false);
                         stuff.add("not a valid group");
-                        m = new Message(msg.getCommand(), null, stuff);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
                         break;
                     }
 
@@ -84,8 +83,7 @@ public class AuthThread extends Thread {
                         members.add(key);
                     }
                     stuff.add(members);
-                    m = new Message(msg.getCommand(), null, stuff);
-
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -113,7 +111,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
               case "delete":    
@@ -133,7 +131,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                     }
                    
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
@@ -144,7 +142,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                        m = new Message(msg.getCommand(), null, stuff);
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "empty":
@@ -156,7 +154,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(true);
                     }
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     stuff.remove(0);
                     break;
 
@@ -173,7 +171,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "assign":
@@ -195,7 +193,7 @@ public class AuthThread extends Thread {
                         stuff.add(true);
 
                     }
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     // change group in user object
                     break;
 
@@ -203,15 +201,14 @@ public class AuthThread extends Thread {
                     // return list of groups
                     stuff.add(true);
                     stuff.add(server.getGroupList().getGroupNames());
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "null":
                     stuff.add(false);
-                    m = new Message(msg.getCommand(), null, stuff);
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
             }
-            signAndSend(m, output);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
