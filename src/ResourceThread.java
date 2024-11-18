@@ -35,12 +35,17 @@ public class ResourceThread extends Thread {
      */
     public void run() {
         try {
+
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
             final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
             final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+
+
+            //diffiehellman bullshit
+
 
             // Loop to read messages
             Message msg = null;
@@ -195,15 +200,25 @@ public class ResourceThread extends Thread {
     }
 
     boolean verify(Token t, byte[] signature) {
-        // try {
-        //     Signature verifier = Signature.getInstance("SHA256withRSA", "BC");
-        //     verifier.initVerify(); // replace with AS public key
-        //     verifier.update(t.toString().getBytes("UTF-8"));
-        //     return verifier.verify(signature);
-        // } catch (Exception e) {
-        //     System.out.println(e.getMessage());
-        // }
-        return true;
+        try {
+            Signature verifier = Signature.getInstance("SHA256withRSA/PSS", "BC");
+            verifier.initVerify(server.getAuthKey()); // replace with AS public key
+            verifier.update(hashToken(t));
+            return verifier.verify(signature);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    public byte[] hashToken(Token t) {
+        try {
+            MessageDigest mdig = MessageDigest.getInstance("SHA-256");
+            return mdig.digest(t.toString().getBytes());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
 } // -- end class ResourceThread

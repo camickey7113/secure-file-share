@@ -1,5 +1,7 @@
 import java.net.ServerSocket; // The server uses this to bind to a port
 import java.net.Socket; // Incoming connections are represented as sockets
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.*;
 import java.io.File;
 
@@ -9,12 +11,23 @@ public class ResourceServer {
     // map of groups and files that each owns
     private static ResourceServer server;
 
+    private static PublicKey rsPubKey;
+    private static PrivateKey rsPrivKey;
+
+    private static PublicKey authPublicKey;
+    
+    
+
     public void listenOnPort(int port) {
 
     }
 
     public void acceptIncomingConnection() {
 
+    }
+
+    public PublicKey getAuthKey() {
+        return authPublicKey;
     }
 
     public void start() {
@@ -28,7 +41,9 @@ public class ResourceServer {
             final ServerSocket serverSock = new ServerSocket(ResourcePort);
             scanner.close();
            
-            
+            // obtain AS public key
+            authPublicKey = KeyIO.readPublicKeyFromFile("authpublickey.txt");
+
             // A simple infinite loop to accept connections
             Socket sock = null;
             ResourceThread thread = null;
@@ -47,6 +62,7 @@ public class ResourceServer {
     }
 
     public static void main(String[] args) {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         server = new ResourceServer();
         server.start();
     }

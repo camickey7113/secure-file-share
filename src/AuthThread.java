@@ -282,6 +282,9 @@ public class AuthThread extends Thread {
             User authUser = null;
 
             Message msg = null;
+
+            //diffiehellman bullshit
+            
             do {
                 // read and print message
                 msg = (Message) input.readObject();

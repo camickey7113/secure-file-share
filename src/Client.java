@@ -1,4 +1,5 @@
 import java.net.Socket; // Used to connect to the server
+import java.security.PublicKey;
 import java.io.ObjectInputStream; // Used to read objects sent from the server
 import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.io.BufferedReader; // Needed to read from the console
