@@ -561,6 +561,7 @@ public class Client {
             resourceSock.close();
             currentUser = null;
 
+            
         } catch (Exception e) {
             System.out.println("One or more servers were unable able to shut down, please try again.");
             return;
@@ -577,26 +578,26 @@ public class Client {
         } else {
             System.out.println("Error connecting to servers");
         }
-        while (true) {
-            // login user
-            while (currentUser == null) {
-                try {
-                    currentUser = login();
-                } catch (Exception e) {
-                    System.out.println("Login unsuccessful. Please try again.");
-                }
+        // login user
+        while (currentUser == null) {
+            try {
+                currentUser = login();
+            } catch (Exception e) {
+                System.out.println("Login unsuccessful. Please try again.");
             }
+        }
 
-            // authenticate user
-            Token t = verifyUser();
-            // if unable to verify, user will need to re-login
-            if (t == null) {
-                System.out.println("Permission has been revoked. Please contact admin.");
-                logout();
-                continue;
-            } else {
-                System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
-            }
+        // authenticate user
+        Token t = verifyUser();
+        // if unable to verify, user will need to re-login
+        if (t == null) {
+            System.out.println("Permission has been revoked. Please contact admin.");
+            logout();
+        } else {
+            System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
+        }
+        while (true) {
+            
             // loop to accept commands
             Message msg;
             try {

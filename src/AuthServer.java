@@ -33,6 +33,7 @@ public class AuthServer {
         try {
             Scanner reader = new Scanner(userFile);
            
+            System.out.println("here");
             while(reader.hasNextLine()){
                 String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
@@ -47,7 +48,7 @@ public class AuthServer {
                 }
                 // add the user to their group
                 groups.getGroup(group).addMember(user);
-                // add the user to the global user list
+\                // add the user to the global user list
                 userList.addUser(user);
             }
             reader.close();
@@ -56,7 +57,7 @@ public class AuthServer {
            
             while(reader.hasNextLine()){
                 String group = reader.nextLine();
-                group.trim();
+]                group.trim();
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
                     Group newGroup = new Group(group);
