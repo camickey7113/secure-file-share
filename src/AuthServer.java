@@ -32,14 +32,15 @@ public class AuthServer {
     public static boolean loadUserAndGroupList(File userFile, File groupFile) {
         try {
             Scanner reader = new Scanner(userFile);
-           
+            // System.out.println("Here 1");
             while(reader.hasNextLine()){
                 String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
                 String username = users[0];
                 String password = users[1];
                 String group = users[2].trim();
-                User user = new User(username, password, group);
+                String salt = users[3];
+                User user = new User(username, password, group, salt);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
                     Group newGroup = new Group(group);
@@ -79,7 +80,7 @@ public class AuthServer {
             w.write("");
             HashMap<String, User> u = userList.getUserMap();
             for(User user: u.values()){
-                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup() + ","+ user.getSalt() + System.lineSeparator());
             }
             w.close();
             return true;
