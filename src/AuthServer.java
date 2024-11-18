@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.spec.X509EncodedKeySpec;
 
 public class AuthServer {
     // port the server will use to connect
@@ -15,9 +16,10 @@ public class AuthServer {
     // list of all users in the system
     private static UserList userList;
     public static GroupList groups;
-    
-    private PublicKey publicKey;
-    private PrivateKey privateKey;
+
+    private static PublicKey authPublicKey;
+    private static PrivateKey authPrivateKey;
+
 
     private static AuthServer server;
 
@@ -29,23 +31,24 @@ public class AuthServer {
     public UserList getUserList() {
         return userList;
     }
+
     public GroupList getGroupList() {
         return groups;
     }
 
     public PublicKey getPublicKey() {
-        return publicKey;
+        return authPublicKey;
     }
 
     public PrivateKey getPrivateKey() {
-        return privateKey;
+        return authPrivateKey;
     }
-    
+
     public static boolean loadUserAndGroupList(File userFile, File groupFile) {
         try {
             Scanner reader = new Scanner(userFile);
-           
-            while(reader.hasNextLine()){
+
+            while (reader.hasNextLine()) {
                 String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
                 String username = users[0];
@@ -53,7 +56,7 @@ public class AuthServer {
                 String group = users[2].trim();
                 User user = new User(username, password, group);
                 // if the group does not exist, create it and add to global group list
-                if(!groups.containsGroup(group)){
+                if (!groups.containsGroup(group)) {
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }
@@ -63,24 +66,23 @@ public class AuthServer {
                 userList.addUser(user);
             }
             reader.close();
-            //sanity check our groups list file
+            // sanity check our groups list file
             reader = new Scanner(groupFile);
-           
-            while(reader.hasNextLine()){
+
+            while (reader.hasNextLine()) {
                 String group = reader.nextLine();
                 group.trim();
                 // if the group does not exist, create it and add to global group list
-                if(!groups.containsGroup(group)){
+                if (!groups.containsGroup(group)) {
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }
             }
             reader.close();
             return true;
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
-            
+
         }
         return false;
     }
@@ -90,8 +92,9 @@ public class AuthServer {
             FileWriter w = new FileWriter(userFile);
             w.write("");
             HashMap<String, User> u = userList.getUserMap();
-            for(User user: u.values()){
-                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+            for (User user : u.values()) {
+                w.append(
+                        user.getUsername() + "," + user.getPassword() + "," + user.getGroup() + System.lineSeparator());
             }
             w.close();
             return true;
@@ -100,12 +103,13 @@ public class AuthServer {
             return false;
         }
     }
+
     public synchronized boolean saveGroupList(String groupFile) {
         try {
             FileWriter w = new FileWriter(groupFile);
             w.write("");
             HashMap<String, Group> g = groups.getGroupMap();
-            for(String groupname: g.keySet()){
+            for (String groupname : g.keySet()) {
                 w.append(groupname + System.lineSeparator());
             }
             w.close();
@@ -116,7 +120,51 @@ public class AuthServer {
         }
     }
 
-    public KeyPair generateKeyPair() throws Exception {
+    // save server keys fucntion below
+    public synchronized boolean saveServerKeys(String publicKeyFile) {
+
+        return true;
+
+    }
+
+    // load server keys function below
+
+    public static boolean loadServerKeys(String publicKeyFile, String privateKeyFile) {
+        // try (Scanner reader = new Scanner(publicKeyFile)) {
+        //     while (reader.hasNextLine()) {
+        //         String line = reader.nextLine();
+        //         String[] parts = line.split(",", 2); // split into servername and key
+        //         if (parts.length < 2)
+        //             continue;
+        //         String serverName = parts[0];
+        //         String publicKeyString = parts[1];
+
+        //         // decode and convert to PublicKey
+
+        //         byte[] keyBytes = Base64.getDecoder().decode(publicKeyString);
+        //         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+        //         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        //         authPublicKey = keyFactory.generatePublic(spec);
+
+                
+     
+        //     }
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+
+        // }
+        try {
+
+            
+            authPublicKey = KeyIO.readKeyFromFile(publicKeyFile);
+            authPrivateKey = KeyIO.readKeyFromFile(privateKeyFile);
+        } catch (Exception e) {
+
+        }
+        return false;      
+    }
+
+    public static KeyPair generateKeyPair() throws Exception {
         // Create key generator using RSA and BouncyCastle
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "BC");
         // Initialize to create 4096-bit key pairs
@@ -126,35 +174,33 @@ public class AuthServer {
     }
 
     public void start() {
-        try {
-            Scanner scanner = new Scanner(System.in);
-            int AuthPort;
-            // This is basically just listens for new client connections
-            System.out.print("Enter Auth Server port you want to connect to: ");
-            AuthPort = scanner.nextInt();
-            final ServerSocket serverSock = new ServerSocket(AuthPort);
-            scanner.close();
-            // A simple infinite loop to accept connections
-            Socket sock = null;
-            AuthThread thread = null;
+            try {
+                Scanner scanner = new Scanner(System.in);
+                int AuthPort;
+                // This is basically just listens for new client connections
+                System.out.print("Enter Auth Server port you want to connect to: ");
+                AuthPort = scanner.nextInt();
+                final ServerSocket serverSock = new ServerSocket(AuthPort);
+                scanner.close();
+                // A simple infinite loop to accept connections
+                Socket sock = null;
+                AuthThread thread = null;
+    
 
-            // generate keypair
-            KeyPair keys = generateKeyPair();
-            publicKey = keys.getPublic();
-            privateKey = keys.getPrivate();
+  
 
-            while (true) {
-                sock = serverSock.accept(); // Accept an incoming connection
-                thread = new AuthThread(this, sock); // Create a thread to handle this connection
-                thread.start(); // Fork the thread
-            } // Loop to work on new connections while this
-                // the accept()ed connection is handled
-
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace(System.err);
+                while (true) {
+                    sock = serverSock.accept(); // Accept an incoming connection
+                    thread = new AuthThread(this, sock); // Create a thread to handle this connection
+                    thread.start(); // Fork the thread
+                } // Loop to work on new connections while this
+                    // the accept()ed connection is handled
+    
+            } catch (Exception e) {
+                System.err.println("Error: " + e.getMessage());
+                e.printStackTrace(System.err);
+            }
         }
-    }
 
     public static void main(String[] args) {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -162,10 +208,21 @@ public class AuthServer {
         server = new AuthServer();
         File usersFile = new File("users.txt");
         File groupFile = new File("groups.txt");
-        try{
-           loadUserAndGroupList(usersFile, groupFile);
+
+        // generate keypairs for the auth server and resource server 
+        try {
+            loadServerKeys("authpublickeys.txt", "authprivatekeys.txt");
+        } catch (Exception e) {
+            try {
+                KeyPair authKeys = generateKeyPair();
+                authPublicKey = authKeys.getPublic();
+                authPrivateKey = authKeys.getPrivate();
+            }
+            //savetofile
         }
-        catch(Exception e){
+        try {
+            loadUserAndGroupList(usersFile, groupFile);  
+        } catch (Exception e) {
             System.out.println("Error Loading Users");
         }
         server.start();
