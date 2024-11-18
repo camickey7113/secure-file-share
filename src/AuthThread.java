@@ -41,9 +41,14 @@ public class AuthThread extends Thread {
                     user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
                     // authenticate the user
                     if (authenticate(user)) {
-                        User authUser = server.getUserList().getUser(user.getUsername());
+                        System.out.print("here!!!");
+                        System.out.print("this is the user username" + user.getUsername());
+                        User authUser = server.getUserList().getUser(user.getUsername()); //this is whats failing
                         // get user from the username in the token
+                        System.out.print("failed here!!!");
+                        System.out.print("this is the auth username" + authUser.getUsername());
                         t = generateToken(authUser);
+                        System.out.print("failed now here!!!");
                         stuff.add(user);
                         // send message with token back to client:
                         output.writeObject(new Message(msg.getCommand(), t, stuff));
@@ -229,6 +234,7 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
+        System.out.println(user.getUsername() + "\n" + user.getPassword() + "\n"+ user.getGroup() +"\n"+ user.getSalt());
         if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(user))== true) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
