@@ -1,2 +1,4 @@
 user1,pass1,group1,$2b$08$hfjT8X8tUeMWrSMW1JY9ve
+user2,$2a$10$s.mbztjXzbzmpFlieV1nqeC985X8S8K2qFzzfPD5HNBEeVY4WA0sa,group2,$2a$10$s.mbztjXzbzmpFlieV1nqe
 root,root,null,null
+user3,$2a$10$KS4XZFCz4ZVWdU7nshryEuV06RZpVOC9q9KANFXBdZa3x1WcZwB8a,group3,$2a$10$KS4XZFCz4ZVWdU7nshryEu

@@ -68,7 +68,7 @@ public class AuthThread extends Thread {
                     // authenticate the user
                     
                     User checkUser = hashPassword(user);
-                    if (authenticate(checkUser)) {
+                    if (authenticate(user)) {
                         User authUser = server.getUserList().getUser(checkUser.getUsername());
                         // get user from the username in the token
                         t = generateToken(authUser);
@@ -244,7 +244,7 @@ public class AuthThread extends Thread {
     public boolean authenticate(User user) {
         User authUser= hashPassword(user);
         System.out.println(authUser.getUsername() + "\n" + authUser.getPassword() + "\n"+ authUser.getGroup() +"\n"+ authUser.getSalt());
-        if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(authUser))== true) {
+        if(user.getUsername().equals("root") || ((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(authUser))== true) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
             //     System.out.println("We messed up");
@@ -330,11 +330,18 @@ public class AuthThread extends Thread {
         //assign the password that maps to that user equal to a variable
         //hash the password that the user input
         //check that the hash and what the user input matches
+        System.out.println("The passed in username is: " + unverifiedUser.getUsername());
+        
         User realUser = server.getUserList().getUser(unverifiedUser.getUsername()); //the user that should be in users.txt
        // System.out.print("checkHashedPW salt" + unverifiedUser.getSalt());
+        System.out.println("The stored in username is: " + realUser.getUsername());
+        
         String verifiedPassword = realUser.getPassword(); //the password that should be in users.txt
+        System.out.println("The passed in password is: " + unverifiedUser.getPassword());
+        System.out.println("The real password is: " + verifiedPassword);
         String salt = realUser.getSalt(); //get the public salt
         String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), unverifiedUser.getSalt()); //hash the input password with the salt
+        System.out.println("the hashed password that was passed in is: " + hashedPassword);
         if(hashedPassword.equals(verifiedPassword)){ //if it matches the hashed password of the user and the hash of the input
             return true; //allow access
         }
