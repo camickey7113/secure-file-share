@@ -46,7 +46,7 @@ public class Client {
     private static User currentUser;
     private static User newUser;
 
-    public static final byte[] encodedRSDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public static Scanner scanner = new Scanner(System.in);
 
@@ -186,11 +186,15 @@ public class Client {
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
         list.add(currentUser);
+        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         try {
             // send user to AS for verification
-            authOutput.writeObject(new Message("verify", null, list));
+            byte[][] encryptedStuff = symmEncrypt(AESkey,new Message("verify", null, list));
+            authOutput.writeObject(encryptedStuff);
             // receive response
-            t = (Token) ((Message) authInput.readObject()).getToken(); // stuck here
+
+            Message response = symmDecrypt(AESkey, (byte[][])authInput.readObject());
+            t = response.getToken(); // stuck here
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -236,6 +240,8 @@ public class Client {
 
         // determine if user is root and switch accordingly
         try {
+            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+            byte[][] encryptedStuff;
             if (currentUser.getUsername().equals("root")) {
                 switch (split[0].toLowerCase()) {
                     case "create":
@@ -244,41 +250,57 @@ public class Client {
                         String password = split[2];
                         String group = split[3];
                         stuff.add(createUser(username, password, group));
-                        authOutput.writeObject(new Message("create", null, stuff));
-                        resourceOutput.writeObject(new Message("create", null, stuff));
+                        
+                        //we need two calls bc normally we'd do the encryption with two different session keys
+                        encryptedStuff = symmEncrypt(AESkey, new Message("create", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
+                        encryptedStuff = symmEncrypt(AESkey, new Message("create", null, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "delete":
                         if (split[1].isEmpty()) return 0;
                         String name = split[1];
                         stuff.add(name);
-                        authOutput.writeObject(new Message("delete", null, stuff));
-                        resourceOutput.writeObject(new Message("delete", null, stuff));
+                        
+                        //same as above, need two different calls bc normally two keys
+                        encryptedStuff = symmEncrypt(AESkey, new Message("delete", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
+                        encryptedStuff = symmEncrypt(AESkey, new Message("delete", null, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "collect":
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        msg = new Message("collect", null, stuff);
-                        resourceOutput.writeObject(msg);
-                        authOutput.writeObject(msg);
+                        encryptedStuff = symmEncrypt(AESkey, new Message("collect", null, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
+                        encryptedStuff = symmEncrypt(AESkey, new Message("collect", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
                         break;
 
                     case "release":
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        authOutput.writeObject(new Message("empty", null, stuff));
-                        if ((boolean)((Message) authInput.readObject()).getStuff().get(0)) {
-                            msg = new Message("release", null, stuff);
-                            authOutput.writeObject(msg);
-                            resourceOutput.writeObject(msg);
+                        encryptedStuff = symmEncrypt(AESkey, new Message("empty", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
+
+                        encryptedStuff = (byte[][]) authInput.readObject();
+                        Message decrypted = symmDecrypt(AESkey, encryptedStuff);
+
+                        if ((boolean)decrypted.getStuff().get(0)) {
+                            encryptedStuff = symmEncrypt(AESkey, new Message("release", null, stuff));
+                            authOutput.writeObject(encryptedStuff);
+                            encryptedStuff = symmEncrypt(AESkey, new Message("release", null, stuff));
+                            resourceOutput.writeObject(encryptedStuff);
                         } else {
-                            msg = new Message("null", null, stuff);
+                            encryptedStuff = symmEncrypt(AESkey, new Message("null", null, stuff));
                             System.out.println("Group not released - not empty or doesn't exist");
-                            authOutput.writeObject(msg);
-                            resourceOutput.writeObject(msg);
+                            authOutput.writeObject(encryptedStuff);
+                            encryptedStuff = symmEncrypt(AESkey, new Message("null", null, stuff));
+                            resourceOutput.writeObject(encryptedStuff);
                         }
                         break;
 
@@ -286,25 +308,27 @@ public class Client {
                         if (split[1].isEmpty() || split[2].isEmpty()) return 0;
                         stuff.add(split[1]);
                         stuff.add(split[2]);
-                        authOutput.writeObject(new Message("assign", null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("assign", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
                         break;
 
                     case "list":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        authOutput.writeObject(new Message("list", null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("list", null, stuff));
+                        authOutput.writeObject(encryptedStuff);
                         break;
 
                     case "groups":
-                        authOutput.writeObject(new Message("groups", null, null));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("groups", null, null));
+                        authOutput.writeObject(encryptedStuff);
                         break;
 
                     default:
                         return 0;
                 }
             } else {
-                SecretKeySpec AESkey = new SecretKeySpec(encodedRSDemoKey, "AES");
-                byte[][] encryptedStuff;
+                
                 switch (split[0]) {
                     case "list":
                         encryptedStuff = symmEncrypt(AESkey, new Message("list", t, null));
@@ -344,7 +368,8 @@ public class Client {
                     case "delete":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("delete", t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("delete", t, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
                 }
             }
@@ -358,11 +383,11 @@ public class Client {
     
     public static boolean handleResponse() {
         try {
-            SecretKeySpec AESkey = new SecretKeySpec(encodedRSDemoKey, "AES");
+            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
             Message authResp;
             Message resResp;
             if (currentUser.getUsername().equals("root")) {
-                authResp = (Message) authInput.readObject();
+                authResp = symmDecrypt(AESkey, (byte[][])authInput.readObject());
                 switch (authResp.getCommand()) {
                     case "create":
                         if((boolean)authResp.getStuff().get(0)){
@@ -381,7 +406,7 @@ public class Client {
                         return true;
 
                     case "collect":
-                        resResp = (Message) resourceInput.readObject();
+                        resResp = symmDecrypt(AESkey, (byte[][])resourceInput.readObject());
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Succesfully collected group.");
                         } else {
@@ -390,7 +415,7 @@ public class Client {
                         return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
 
                     case "release":
-                        resResp = (Message) resourceInput.readObject();
+                        resResp = symmDecrypt(AESkey, (byte[][])resourceInput.readObject());
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Succesfully released group.");
                         } else {
@@ -501,10 +526,12 @@ public class Client {
         //System.out.println("made it here");
         // send user to AS for verification
         // receive response
+        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES"); //hardcoded key for demo
         try {
-            authOutput.writeObject(new Message("login", null, list));
+            byte[][] encryptedStuff = symmEncrypt(AESkey, new Message("login", null, list));
+            authOutput.writeObject(encryptedStuff);
 
-            Message resp = (Message) authInput.readObject();
+            Message resp = symmDecrypt(AESkey, (byte[][]) authInput.readObject());
             if(resp.getToken() == null) {
                 return null;
             }
@@ -525,14 +552,17 @@ public class Client {
     public static void exit() {
         // cleanup stuff
         try {
-            authOutput.writeObject(new Message("exit", null, null));
-            resourceOutput.writeObject(new Message("exit", null, null));
+            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+            byte[][] encryptedStuff = symmEncrypt(AESkey,new Message("exit", null, null));
+            authOutput.writeObject(encryptedStuff);
+            encryptedStuff = symmEncrypt(AESkey,new Message("exit", null, null));
+            resourceOutput.writeObject(encryptedStuff);
             authSock.close();
             resourceSock.close();
             currentUser = null;
 
         } catch (Exception e) {
-            System.out.println("One or more servers was able to shut down, please try again.");
+            System.out.println("One or more servers were unable able to shut down, please try again.");
             return;
         }
 
@@ -557,21 +587,20 @@ public class Client {
                 }
             }
 
+            // authenticate user
+            Token t = verifyUser();
+            // if unable to verify, user will need to re-login
+            if (t == null) {
+                System.out.println("Permission has been revoked. Please contact admin.");
+                logout();
+                continue;
+            } else {
+                System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
+            }
             // loop to accept commands
             Message msg;
             try {
                 while (currentUser != null) {
-                    // authenticate user
-                    Token t = verifyUser();
-                    // if unable to verify, user will need to re-login
-                    if (t == null) {
-                        System.out.println("Permission has been revoked. Please contact admin.");
-                        logout();
-                        continue;
-                    } else {
-                        System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
-                    }
-
                     // input command
                     String inputs = readSomeText();
                     // System.out.println("Awaiting command...");
