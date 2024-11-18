@@ -238,6 +238,9 @@ public class AuthThread extends Thread {
 
             return true;
         } 
+        else if(user.getUsername().equals("root")){
+            return true; //DELETE THIS ITS JUST FOR TESTING
+        }
         else {
             System.out.println("User and/or Group does not exist");
             return false;
