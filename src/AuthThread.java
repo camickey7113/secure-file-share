@@ -1,5 +1,8 @@
 import java.lang.Thread;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -23,7 +26,6 @@ public class AuthThread extends Thread {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
-       
 
         try {
             switch (msg.getCommand()) {
@@ -41,7 +43,7 @@ public class AuthThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, null));
                     }
                     break;
-                    
+
                 case "verify":
                     user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
                     // authenticate the user
@@ -58,13 +60,13 @@ public class AuthThread extends Thread {
                     break;
 
                 case "list":
-                    //getting the desired group from the message
+                    // getting the desired group from the message
                     String listgroup = (String) msg.getStuff().get(0);
-                    //retrieving the members
+                    // retrieving the members
                     ArrayList<String> members = new ArrayList<String>();
 
                     Group g = server.getGroupList().getGroup(listgroup);
-                    if(g == null){
+                    if (g == null) {
                         stuff.add(false);
                         stuff.add("not a valid group");
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
@@ -73,8 +75,8 @@ public class AuthThread extends Thread {
 
                     stuff.add(true);
                     HashMap<String, User> m = g.getMembers().getUserMap();
-                    //populate arraylist with usernames
-                    for(String key: m.keySet()){
+                    // populate arraylist with usernames
+                    for (String key : m.keySet()) {
                         members.add(key);
                     }
                     stuff.add(members);
@@ -83,67 +85,90 @@ public class AuthThread extends Thread {
                     break;
 
                 case "create":
+
+                    if (!t.getUser().equals("root")) {
+                        stuff.add(false);
+                        stuff.add("Only the root can create users");
+                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        break;
+                    }
                     User newUser = (User) msg.getStuff().get(0);
-                    //Group newGroup = newUser.getGroup();
-                    if(server.getUserList().addUser(newUser)){
+                    // Group newGroup = newUser.getGroup();
+                    String base64PublicKey = (String) msg.getStuff().get(1);
+                    if (server.getUserList().addUser(newUser)) {
                         System.out.println("User " + newUser.getUsername() + " added.");
                         server.saveUserList("users.txt");
-                        //stuff.add(true); add in later
+                        // stuff.add(true); add in later
 
-                        //if group assigning exists assign user to that group
-                        //otherwise create a new group
-                        if(server.getGroupList().containsGroup(newUser.getGroup())){
+                        // if group assigning exists assign user to that group
+                        // otherwise create a new group
+                        if (server.getGroupList().containsGroup(newUser.getGroup())) {
                             Group existingGroup = server.getGroupList().getGroup(newUser.getGroup());
                             existingGroup.addMember(newUser);
                             stuff.add(true);
-                        }
-                        else {
-                            Group newGroup = new Group (newUser.getGroup());
+                        } else {
+                            Group newGroup = new Group(newUser.getGroup());
                             server.getGroupList().addGroup(newGroup);
                             newGroup.addMember(newUser);
                             server.saveGroupList("groups.txt");
                             stuff.add(true);
                         }
+
+                        try {
+                            byte[] keyBytes = Base64.getDecoder().decode(base64PublicKey);
+                            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+                            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                            PublicKey publicKey = keyFactory.generatePublic(spec);
+
+                            AuthServer.publicKeys.put(newUser.getUsername(), publicKey);
+                            AuthServer.savePublicKeys();
+
+                            stuff.add(true);
+                            stuff.add("User created and public key registered.");
+                        } catch (Exception e) {
+                            stuff.add(false);
+                            stuff.add("Error registering public key: " + e.getMessage());
+                        }
+
                     } else {
                         stuff.add(false);
                     }
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-              case "delete":    
+                case "delete":
                     String deletedUsername = (String) msg.getStuff().get(0);
-                    if(server.getUserList().containsUser(deletedUsername)){
+                    if (server.getUserList().containsUser(deletedUsername)) {
                         User deletedUser = server.getUserList().getUser(deletedUsername);
                         Group existingGroup = server.getGroupList().getGroup(deletedUser.getGroup());
                         existingGroup.removeMember(deletedUser);
-                        if (server.getUserList().deleteUser(deletedUser)){
+                        if (server.getUserList().deleteUser(deletedUser)) {
                             System.out.println("User " + deletedUser.getUsername() + " deleted.");
                             server.saveUserList("users.txt");
                             stuff.add(true);
                         }
-                    }
-                    else{
+                    } else {
                         System.out.println("User doesn't exist!");
                         stuff.add(false);
                     }
-                   
+
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
-                    if(server.getGroupList().getGroup((String)msg.getStuff().get(0)) != null) {
-                       stuff.add(false);
+                    if (server.getGroupList().getGroup((String) msg.getStuff().get(0)) != null) {
+                        stuff.add(false);
                     } else {
-                        server.getGroupList().addGroup(new Group((String)(msg.getStuff()).get(0)));
+                        server.getGroupList().addGroup(new Group((String) (msg.getStuff()).get(0)));
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "empty":
-                    Group e = server.getGroupList().getGroup((String)msg.getStuff().get(0));
-                    if (e == null){
+                    Group e = server.getGroupList().getGroup((String) msg.getStuff().get(0));
+                    if (e == null) {
                         stuff.add(false);
                     } else if (e.getMembers().hasMembers()) {
                         stuff.add(false);
@@ -156,14 +181,15 @@ public class AuthThread extends Thread {
 
                 case "release":
                     System.out.println("releasing...");
-                    Group delGroup = server.getGroupList().getGroup((String)msg.getStuff().get(0));
-                    //some redundant error checking
-                    if(delGroup == null) { //if the group doesnt exist
+                    Group delGroup = server.getGroupList().getGroup((String) msg.getStuff().get(0));
+                    // some redundant error checking
+                    if (delGroup == null) { // if the group doesnt exist
                         stuff.add(false);
-                    } if(delGroup.getMembers().size() != 0){ //if the group isnt empty
+                    }
+                    if (delGroup.getMembers().size() != 0) { // if the group isnt empty
                         stuff.add(false);
                     } else {
-                        server.getGroupList().removeGroup((String)(msg.getStuff()).get(0));
+                        server.getGroupList().removeGroup((String) (msg.getStuff()).get(0));
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
@@ -172,18 +198,19 @@ public class AuthThread extends Thread {
 
                 case "assign":
                     // confirm that group and user exist
-                    if (server.getGroupList().getGroup((String)msg.getStuff().get(1)) == null || server.getUserList().getUser((String)msg.getStuff().get(0)) == null) {
+                    if (server.getGroupList().getGroup((String) msg.getStuff().get(1)) == null
+                            || server.getUserList().getUser((String) msg.getStuff().get(0)) == null) {
                         stuff.add(false);
                         System.out.println("Cannot assign, either user or group are not valid.");
                     } else {
                         // get user object
-                        User assignee = server.getUserList().getUser((String)msg.getStuff().get(0));
+                        User assignee = server.getUserList().getUser((String) msg.getStuff().get(0));
                         // remove user from old group
                         server.getGroupList().getGroup(assignee.getGroup()).removeMember(assignee);
                         // change group field in user
-                        assignee.setGroup((String)msg.getStuff().get(1));
+                        assignee.setGroup((String) msg.getStuff().get(1));
                         // add user to new group
-                        server.getGroupList().getGroup((String)msg.getStuff().get(1)).addMember(assignee);
+                        server.getGroupList().getGroup((String) msg.getStuff().get(1)).addMember(assignee);
                         server.saveUserList("users.txt");
                         // return success
                         stuff.add(true);
@@ -205,12 +232,11 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-                
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        
+
         return true;
     }
 
@@ -218,11 +244,12 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        if (server.getUserList().containsUser(user.getUsername()) && server.getUserList().getUser(user.getUsername()).getPassword().equals(user.getPassword())) {
+        if (server.getUserList().containsUser(user.getUsername())
+                && server.getUserList().getUser(user.getUsername()).getPassword().equals(user.getPassword())) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
-            //     System.out.println("We messed up");
-            //     return false;
+            // System.out.println("We messed up");
+            // return false;
             // }
             return true;
         } else {
@@ -248,9 +275,8 @@ public class AuthThread extends Thread {
                 // read and print message
                 msg = (Message) input.readObject();
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
-                
-                handleCommand(msg, output);
 
+                handleCommand(msg, output);
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 

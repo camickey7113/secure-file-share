@@ -1,5 +1,8 @@
 import java.net.ServerSocket; // The server uses this to bind to a port
 import java.net.Socket; // Incoming connections are represented as sockets
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.io.File;
 import java.io.BufferedReader;
@@ -13,7 +16,10 @@ public class AuthServer {
     // list of all users in the system
     private static UserList userList;
     public static GroupList groups;
-    //Group newGroup;
+
+
+
+    public static HashMap<String, PublicKey> publicKeys = new HashMap<>();
 
     private static AuthServer server;
 
@@ -25,15 +31,16 @@ public class AuthServer {
     public UserList getUserList() {
         return userList;
     }
+
     public GroupList getGroupList() {
         return groups;
     }
-    
+
     public static boolean loadUserAndGroupList(File userFile, File groupFile) {
         try {
             Scanner reader = new Scanner(userFile);
-           
-            while(reader.hasNextLine()){
+
+            while (reader.hasNextLine()) {
                 String userLine = reader.nextLine();
                 String users[] = userLine.split(",");
                 String username = users[0];
@@ -41,7 +48,7 @@ public class AuthServer {
                 String group = users[2].trim();
                 User user = new User(username, password, group);
                 // if the group does not exist, create it and add to global group list
-                if(!groups.containsGroup(group)){
+                if (!groups.containsGroup(group)) {
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }
@@ -51,24 +58,23 @@ public class AuthServer {
                 userList.addUser(user);
             }
             reader.close();
-            //sanity check our groups list file
+            // sanity check our groups list file
             reader = new Scanner(groupFile);
-           
-            while(reader.hasNextLine()){
+
+            while (reader.hasNextLine()) {
                 String group = reader.nextLine();
                 group.trim();
                 // if the group does not exist, create it and add to global group list
-                if(!groups.containsGroup(group)){
+                if (!groups.containsGroup(group)) {
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
                 }
             }
             reader.close();
             return true;
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
-            
+
         }
         return false;
     }
@@ -78,8 +84,9 @@ public class AuthServer {
             FileWriter w = new FileWriter(userFile);
             w.write("");
             HashMap<String, User> u = userList.getUserMap();
-            for(User user: u.values()){
-                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+            for (User user : u.values()) {
+                w.append(
+                        user.getUsername() + "," + user.getPassword() + "," + user.getGroup() + System.lineSeparator());
             }
             w.close();
             return true;
@@ -88,12 +95,13 @@ public class AuthServer {
             return false;
         }
     }
+
     public synchronized boolean saveGroupList(String groupFile) {
         try {
             FileWriter w = new FileWriter(groupFile);
             w.write("");
             HashMap<String, Group> g = groups.getGroupMap();
-            for(String groupname: g.keySet()){
+            for (String groupname : g.keySet()) {
                 w.append(groupname + System.lineSeparator());
             }
             w.close();
@@ -104,12 +112,56 @@ public class AuthServer {
         }
     }
 
-    public void listenOnPort(int port) {
+    public static void loadPublicKeys(File keyFile) throws Exception {
+        if (!keyFile.exists()) {
+            System.out.println("Public key file not found, skipping.");
+            return;
+        }
+
+        try (Scanner reader = new Scanner(keyFile)) {
+            while (reader.hasNextLine()) {
+                String line = reader.nextLine();
+                String[] parts = line.split(",", 2); // split into username and key
+                if (parts.length < 2)
+                    continue;
+
+                String username = parts[0];
+                String keyString = parts[1];
+
+                // decode and convert to PublicKey
+                byte[] keyBytes = Base64.getDecoder().decode(keyString);
+                X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                PublicKey publicKey = keyFactory.generatePublic(spec);
+
+                // store in map
+                publicKeys.put(username, publicKey);
+            }
+
+            System.out.println("Loaded public keys: " + publicKeys.keySet());
+        } catch (IOException e) {
+            System.err.println("Error reading public key file: " + e.getMessage());
+
+        }
 
     }
 
-    public void acceptIncomingConnection() {
+    // save public keys to the file
+    public static void savePublicKeys() {
+        try (FileWriter writer = new FileWriter("public_keys.txt")) {
+            for (String username : publicKeys.keySet()) {
+                String keyString = Base64.getEncoder().encodeToString(publicKeys.get(username).getEncoded());
+                writer.write(username + "," + keyString + System.lineSeparator());
+            }
+            System.out.println("Public keys saved.");
+        } catch (IOException e) {
+            System.err.println("Error saving public key file: " + e.getMessage());
+        }
+    }
 
+    // Retrieve a public key for a user
+    public static PublicKey getPublicKey(String username) {
+        return publicKeys.get(username);
     }
 
     public void start() {
@@ -125,13 +177,12 @@ public class AuthServer {
             Socket sock = null;
             AuthThread thread = null;
 
-           
             while (true) {
                 sock = serverSock.accept(); // Accept an incoming connection
                 thread = new AuthThread(this, sock); // Create a thread to handle this connection
                 thread.start(); // Fork the thread
             } // Loop to work on new connections while this
-                // the accept()ed connection is handled
+              // the accept()ed connection is handled
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -143,10 +194,11 @@ public class AuthServer {
         server = new AuthServer();
         File usersFile = new File("users.txt");
         File groupFile = new File("groups.txt");
-        try{
-           loadUserAndGroupList(usersFile, groupFile);
-        }
-        catch(Exception e){
+        File publicKeyFile = new File("public_keys.txt");
+        try {
+            loadUserAndGroupList(usersFile, groupFile);
+            loadPublicKeys(publicKeyFile);
+        } catch (Exception e) {
             System.out.println("Error Loading Users");
         }
         server.start();
