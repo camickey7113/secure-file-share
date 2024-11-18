@@ -95,7 +95,7 @@ public class AuthThread extends Thread {
                 case "create":
                     User originalUser = (User) msg.getStuff().get(0);
                     //Group newGroup = newUser.getGroup();
-                    User newUser= hashPassword(originalUser);
+                    User newUser= hashPassword(originalUser); //intercept user created and add a real salt and hashed password to users.txt
                     if(server.getUserList().addUser(newUser)){
                         System.out.println("User " + newUser.getUsername() + " added.");
                         server.saveUserList("users.txt");
@@ -229,7 +229,7 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        if (server.getUserList().containsUser(user.getUsername()) && checkHashedPassword(user, user.getPassword())) {
+        if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(user))== true) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
             //     System.out.println("We messed up");
@@ -237,7 +237,8 @@ public class AuthThread extends Thread {
             // }
 
             return true;
-        } else {
+        } 
+        else {
             System.out.println("User and/or Group does not exist");
             return false;
         }
@@ -295,14 +296,17 @@ public class AuthThread extends Thread {
         // return null;
     }
 
-    public boolean checkHashedPassword(User unverifiedUser, String password){
-        //check the password that the user inputs
-        //hash the password that was input
-        //if the hashed password matches what's in users.txt
-        //then authenticate, otherwise deny access
-        String salt = unverifiedUser.getSalt(); //get the public salt
-        String hashedPassword = BCrypt.hashpw(password, salt); //hash the input password with the salt
-        if(hashedPassword.equals(unverifiedUser.getPassword())){ //if it matches the hashed password of the user and the hash of the input
+    public boolean checkHashedPassword(User unverifiedUser){
+        //the unverified user only has a username and password
+        //check the username and map that to a user stored in users.txt
+        //assign the password that maps to that user equal to a variable
+        //hash the password that the user input
+        //check that the hash and what the user input matches
+        User realUser = server.getUserList().getUser(unverifiedUser.getUsername()); //the user that should be in users.txt
+        String verifiedPassword = realUser.getPassword(); //the password that should be in users.txt
+        String salt = realUser.getSalt(); //get the public salt
+        String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), salt); //hash the input password with the salt
+        if(hashedPassword.equals(verifiedPassword)){ //if it matches the hashed password of the user and the hash of the input
             return true; //allow access
         }
         return false; //deny access
