@@ -1,2 +1,4 @@
 user1,pass1,group1
+user2,pass2,group5
 root,root,null
+user3,pass3,group1

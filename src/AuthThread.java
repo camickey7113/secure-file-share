@@ -1,5 +1,6 @@
 import java.lang.Thread;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -10,12 +11,17 @@ import java.util.*;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class AuthThread extends Thread {
     private AuthServer server;
     private final Socket socket;
+
+    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+
+
 
     public AuthThread(AuthServer server, Socket socket) {
         this.server = server;
@@ -100,7 +106,8 @@ public class AuthThread extends Thread {
         Token t = msg.getToken();
         User user;
        
-
+        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+        byte[][] encryptedStuff;
         try {
             switch (msg.getCommand()) {
                 case "login":
@@ -112,9 +119,11 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), t, stuff));
+                        output.writeObject(encryptedStuff);
                     } else {
-                        output.writeObject(new Message(msg.getCommand(), null, null));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
+                        output.writeObject(encryptedStuff);
                     }
                     break;
                     
@@ -127,9 +136,11 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), t, stuff));
+                        output.writeObject(encryptedStuff);
                     } else {
-                        output.writeObject(new Message(msg.getCommand(), null, null));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
+                        output.writeObject(encryptedStuff);
                     }
                     break;
 
@@ -143,7 +154,9 @@ public class AuthThread extends Thread {
                     if(g == null){
                         stuff.add(false);
                         stuff.add("not a valid group");
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                        output.writeObject(encryptedStuff);
                         break;
                     }
 
@@ -154,7 +167,9 @@ public class AuthThread extends Thread {
                         members.add(key);
                     }
                     stuff.add(members);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
 
                     break;
 
@@ -183,7 +198,8 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
               case "delete":    
@@ -202,8 +218,8 @@ public class AuthThread extends Thread {
                         System.out.println("User doesn't exist!");
                         stuff.add(false);
                     }
-                   
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "collect":
@@ -214,7 +230,8 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "empty":
@@ -226,7 +243,8 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(true);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     stuff.remove(0);
                     break;
 
@@ -243,7 +261,8 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "assign":
@@ -265,20 +284,22 @@ public class AuthThread extends Thread {
                         stuff.add(true);
 
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
-                    // change group in user object
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "groups":
                     // return list of groups
                     stuff.add(true);
                     stuff.add(server.getGroupList().getGroupNames());
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "null":
                     stuff.add(false);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 
@@ -320,9 +341,11 @@ public class AuthThread extends Thread {
             User authUser = null;
 
             Message msg = null;
+
+            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");//set up hardcode key for now
             do {
                 // read and print message
-                msg = (Message) input.readObject();
+                msg = symmDecrypt(AESkey, (byte[][])input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
                 
                 handleCommand(msg, output);
