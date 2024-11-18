@@ -62,7 +62,7 @@ public class Client {
 
     public static User createUser(String username, String password, String group, String salt){
         
-        User newUser = new User(username, password, group, Integer.parseInt(salt));
+        User newUser = new User(username, password, group, salt);
         
         return newUser;
       
@@ -535,7 +535,7 @@ public class Client {
             System.out.print("Password: ");
             String password = in.readLine();
 
-            return new User(username, password, null, 0);
+            return new User(username, password, null, "$2b$00$0000000000000000000000");
         } catch (Exception e) {
             // Uh oh...
             return null;
