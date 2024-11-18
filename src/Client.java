@@ -46,7 +46,7 @@ public class Client {
     private static User currentUser;
     private static User newUser;
 
-    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] encodedRSDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public static Scanner scanner = new Scanner(System.in);
 
@@ -303,7 +303,7 @@ public class Client {
                         return 0;
                 }
             } else {
-                SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+                SecretKeySpec AESkey = new SecretKeySpec(encodedRSDemoKey, "AES");
                 byte[][] encryptedStuff;
                 switch (split[0]) {
                     case "list":
@@ -358,6 +358,7 @@ public class Client {
     
     public static boolean handleResponse() {
         try {
+            SecretKeySpec AESkey = new SecretKeySpec(encodedRSDemoKey, "AES");
             Message authResp;
             Message resResp;
             if (currentUser.getUsername().equals("root")) {
@@ -431,7 +432,8 @@ public class Client {
                         return false;
                 }
             } else {
-                Message resp = (Message) resourceInput.readObject();
+                byte[][] nonsense = (byte[][])resourceInput.readObject();
+                Message resp = symmDecrypt(AESkey, nonsense);
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));

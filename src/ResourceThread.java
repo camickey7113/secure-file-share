@@ -57,8 +57,13 @@ public class ResourceThread extends Thread {
             Message msg = null;
             int count = 0;
             do {
-                // read and print message
-                msg = (Message) input.readObject();
+                // new decryption
+                byte[][] nonsense = (byte[][]) input.readObject();
+                SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+                msg = symmDecrypt(AESkey, nonsense);
+
+
+
                 // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() +
                 // "] " + msg.getCommand());
                 System.out.println(msg.getCommand());
@@ -111,10 +116,12 @@ public class ResourceThread extends Thread {
                         fout.write((byte[])msg.getStuff().get(1));
 
                         stuff.add(true);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                        output.writeObject(encryptedStuff);
                     } catch(Exception e) {
                         stuff.add(false);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                        output.writeObject(encryptedStuff);
                     }
                     break;
 
@@ -133,10 +140,12 @@ public class ResourceThread extends Thread {
                         stuff.add(true);
                         stuff.add(msg.getStuff().get(0));
                         stuff.add(fileData);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                        output.writeObject(encryptedStuff);
                     } catch (Exception e){
                         stuff.add(false);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                        output.writeObject(encryptedStuff);
                     }
                     break;
 
@@ -149,7 +158,8 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "collect":
@@ -157,7 +167,8 @@ public class ResourceThread extends Thread {
                     File directory = new File(directoryPath);
                     boolean directoryCreated = directory.mkdir();
                     stuff.add(true);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "release":
@@ -172,7 +183,8 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "create":
@@ -186,12 +198,14 @@ public class ResourceThread extends Thread {
                         boolean directoryCreated3 = directory3.mkdir();
                         stuff.add(directoryCreated3); 
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
 
                 case "null":
                     stuff.add(false);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
                     break;
             }
         } catch (Exception e) {
