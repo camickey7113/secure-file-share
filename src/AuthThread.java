@@ -43,8 +43,10 @@ public class AuthThread extends Thread {
                     if (authenticate(user)) {
                         System.out.print("here!!!");
                         System.out.print("this is the user username" + user.getUsername());
-                        for(User user: userList){
-                            System.out.println(user.getUsername());
+                        for (Map.Entry<String, User> entry : server.getUserList().getUserMap().entrySet()) {
+                            String usernamething = entry.getKey();
+                            User userthing = entry.getValue();
+                            System.out.println("Username: " + usernamething + ", User: " + userthing);
                         }
                         User authUser = server.getUserList().getUser(user.getUsername()); //this is whats failing
                         // get user from the username in the token
