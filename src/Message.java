@@ -4,6 +4,7 @@ import java.util.*;
 public class Message implements java.io.Serializable {
     private String command;
     private Token token;
+    private byte[] signature;
     private ArrayList<Object> stuff;
     
     // Message Constructors
@@ -16,10 +17,17 @@ public class Message implements java.io.Serializable {
     //     this.stuff = stuff;
     //     this.command = null;
     // }
-
     public Message(String cmd, Token token, ArrayList<Object> stuff){
         this.command = cmd;
         this.token = token;
+        this.signature = null;
+        this.stuff = stuff;
+    }
+
+    public Message(String cmd, Token token, byte[] signature, ArrayList<Object> stuff){
+        this.command = cmd;
+        this.token = token;
+        this.signature = signature;
         this.stuff = stuff;
     }
 
@@ -36,6 +44,10 @@ public class Message implements java.io.Serializable {
         return stuff;
     }
 
+    public byte[] getSignature() {
+        return signature;
+    }
+
     // Setters
     public void setCommand(String cmd) {
         this.command = cmd;
@@ -43,6 +55,10 @@ public class Message implements java.io.Serializable {
 
     public void setToken(Token token) {
         this.token = token;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
     
     public boolean addStuff(Object item) {

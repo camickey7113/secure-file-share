@@ -1,5 +1,6 @@
 import java.lang.Thread; // We will extend Java's base Thread class
 import java.net.Socket;
+import java.security.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -7,6 +8,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
 import java.util.*;
+
+import org.bouncycastle.crypto.util.PublicKeyFactory;
 
 public class ResourceThread extends Thread {
     private ResourceServer server;
@@ -32,12 +35,17 @@ public class ResourceThread extends Thread {
      */
     public void run() {
         try {
+
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
             final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
             final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+
+
+            //diffiehellman bullshit
+
 
             // Loop to read messages
             Message msg = null;
@@ -66,6 +74,14 @@ public class ResourceThread extends Thread {
     private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
+        
+        // check signature before proceeding
+        if (!verify(t, msg.getSignature())) {
+            System.out.println("Signature not verified.");
+            // if signature isn't verified, message is returned with null signature
+            output.writeObject(new Message(msg.getCommand(), null, null, stuff));
+            return;
+        }
 
         try {
             switch (msg.getCommand()) {
@@ -74,7 +90,7 @@ public class ResourceThread extends Thread {
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     System.out.println("Sending back list message...");
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
 
                     // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
                     // if(directory.isDirectory()) {
@@ -97,7 +113,7 @@ public class ResourceThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     } catch(Exception e) {
                         stuff.add(false);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
                     break;
 
@@ -119,7 +135,7 @@ public class ResourceThread extends Thread {
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
                     } catch (Exception e){
                         stuff.add(false);
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
                     break;
 
@@ -132,7 +148,7 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
@@ -140,7 +156,7 @@ public class ResourceThread extends Thread {
                     File directory = new File(directoryPath);
                     boolean directoryCreated = directory.mkdir();
                     stuff.add(true);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "release":
@@ -155,7 +171,7 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -169,19 +185,40 @@ public class ResourceThread extends Thread {
                         boolean directoryCreated3 = directory3.mkdir();
                         stuff.add(directoryCreated3); 
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "null":
                     stuff.add(false);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
             }
+            output.writeObject(new Message(msg.getCommand(), null, msg.getSignature(), stuff));
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
 
-        
+    boolean verify(Token t, byte[] signature) {
+        try {
+            Signature verifier = Signature.getInstance("SHA256withRSA/PSS", "BC");
+            verifier.initVerify(server.getAuthKey()); // replace with AS public key
+            verifier.update(hashToken(t));
+            return verifier.verify(signature);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    public byte[] hashToken(Token t) {
+        try {
+            MessageDigest mdig = MessageDigest.getInstance("SHA-256");
+            return mdig.digest(t.toString().getBytes());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
 } // -- end class ResourceThread

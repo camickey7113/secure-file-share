@@ -2,7 +2,9 @@
 //package org.mindrot.jbcrypt;
 import java.lang.Thread;
 import java.net.Socket;
-import java.security.Security;
+import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -114,8 +116,10 @@ public class AuthThread extends Thread {
                         // System.out.print("this is the auth username" + authUser.getUsername());
                         t = generateToken(authUser);
                         stuff.add(user);
+                        // create signature
+                        byte[] signature = sign(hashToken(t), server.getPrivateKey());
                         // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        output.writeObject(new Message(msg.getCommand(), t, signature, stuff));
                     } else {
                         output.writeObject(new Message(msg.getCommand(), null, null));
                     }
@@ -159,7 +163,6 @@ public class AuthThread extends Thread {
                     }
                     stuff.add(members);
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
-
                     break;
 
                 case "create":
@@ -287,12 +290,50 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
+                
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
+        
         return true;
+    }
+
+    @Deprecated
+    public boolean signAndSend(Message m, ObjectOutputStream output) {
+        try {
+            // generate hashed token
+            // sign hashed token
+            if (m.getToken() != null) {
+                byte[] signature = sign(hashToken(m.getToken()), server.getPrivateKey());
+                m.setSignature(signature);
+            }
+            // output to socket
+            output.writeObject(m);
+            return true;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
+    }
+
+    public byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
+        signature.initSign(privateKey);
+
+        signature.update(hashedToken);
+
+        return signature.sign();
+    }
+
+    public byte[] hashToken(Token t) {
+        try {
+            MessageDigest mdig = MessageDigest.getInstance("SHA-256");
+            return mdig.digest(t.toString().getBytes());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
     // This function accepts a potential user object to be confirmed to exist in the
@@ -331,6 +372,9 @@ public class AuthThread extends Thread {
             User authUser = null;
 
             Message msg = null;
+
+            //diffiehellman bullshit
+            
             do {
                 // read and print message
                 msg = (Message) input.readObject();
