@@ -343,7 +343,7 @@ public class AuthThread extends Thread {
         // User authUser= rehashPassword(user, user.getSalt());
         // System.out.println(authUser.getUsername() + "\n" + authUser.getPassword() +
         // "\n"+ authUser.getGroup() +"\n"+ authUser.getSalt());
-        if (user.getUsername().equals("root") || ((server.getUserList()).containsUser(user.getUsername()))
+        if ((user.getUsername().equals("root") && user.getPassword().equals("root")) || ((server.getUserList()).containsUser(user.getUsername()))
                 && BCrypt.checkpw(user.getPassword(), server.getUserList().getUser(user.getUsername()).getPassword())) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
