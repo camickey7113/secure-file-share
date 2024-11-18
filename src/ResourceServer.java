@@ -56,14 +56,14 @@ public class ResourceServer {
     public void start() {
         try{
             // obtain AS public key
-            authPublicKey = KeyIO.readPublicKeyFromFile("respublickey.txt");
+            authPublicKey = KeyIO.readPublicKeyFromFile("authpublickey.txt");
 
             // obtain RS keys
             if(!loadServerKeys("respublickey.txt", "resprivatekey.txt")) {
                 try {
-                    KeyPair authKeys = generateKeyPair();
-                    resPublicKey = authKeys.getPublic();
-                    resPrivateKey = authKeys.getPrivate();
+                    KeyPair resKeys = generateKeyPair();
+                    resPublicKey = resKeys.getPublic();
+                    resPrivateKey = resKeys.getPrivate();
                 } catch (Exception a) {
                     a.printStackTrace();
                     System.out.println("We're cooked.");
