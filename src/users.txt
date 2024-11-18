@@ -1,2 +1,2 @@
-root,root,null,500
-user1,pass1,group1,200
+root,root,null,$2b$10$C8Jb9ZpgppG3cfL1cQp9MO
+user1,pass1,group1,$2b$08$hfjT8X8tUeMWrSMW1JY9ve
