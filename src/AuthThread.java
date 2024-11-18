@@ -304,7 +304,7 @@ public class AuthThread extends Thread {
         //return new user with hashed password
         String salt = BCrypt.gensalt();
         String saltedPassword = BCrypt.hashpw(originalUser.getPassword(), salt);
-        int newSalt = Integer.parseInt(salt);
+        String newSalt = salt;
         User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), newSalt);
 
         return saltedUser;
@@ -319,7 +319,7 @@ public class AuthThread extends Thread {
         //check that the hash and what the user input matches
         User realUser = server.getUserList().getUser(unverifiedUser.getUsername()); //the user that should be in users.txt
         String verifiedPassword = realUser.getPassword(); //the password that should be in users.txt
-        String salt = String.valueOf(realUser.getSalt()); //get the public salt
+        String salt = realUser.getSalt(); //get the public salt
         String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), salt); //hash the input password with the salt
         if(hashedPassword.equals(verifiedPassword)){ //if it matches the hashed password of the user and the hash of the input
             return true; //allow access

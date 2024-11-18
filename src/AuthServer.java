@@ -39,46 +39,46 @@ public class AuthServer {
                 String username = users[0];
                 String password = users[1];
                 String group = users[2].trim();
-                // System.out.println("Here 2");
-                int salt = Integer.parseInt(users[3]);
-                // System.out.println("Here 3");
+                System.out.println("Here 2");
+                String salt = users[3];
+                System.out.println("Here 3");
                 User user = new User(username, password, group, salt);
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
                     Group newGroup = new Group(group);
                     groups.addGroup(newGroup);
-                    // System.out.println("Here 4");
+                    System.out.println("Here 4");
                 }
                 // add the user to their group
                 groups.getGroup(group).addMember(user);
                 // add the user to the global user list
-                // System.out.println("Here 5");
+                System.out.println("Here 5");
                 userList.addUser(user);
-                // System.out.println("Here 6");
+                System.out.println("Here 6");
             }
-            // System.out.println("Here 7");
+            System.out.println("Here 7");
             reader.close();
-            // System.out.println("Here 8");
+            System.out.println("Here 8");
             //sanity check our groups list file
             reader = new Scanner(groupFile);
-            // System.out.println("Here 9");
+            System.out.println("Here 9");
            
             while(reader.hasNextLine()){
                 String group = reader.nextLine();
-                // System.out.println("Here 7");
+                System.out.println("Here 10");
                 group.trim();
-                // System.out.println("Here 8");
+                System.out.println("Here 11");
                 // if the group does not exist, create it and add to global group list
                 if(!groups.containsGroup(group)){
-                    // System.out.println("Here 9");
+                    System.out.println("Here 12");
                     Group newGroup = new Group(group);
-                    // System.out.println("Here 10");
+                    System.out.println("Here 13");
                     groups.addGroup(newGroup);
-                    // System.out.println("Here 11");
+                    System.out.println("Here 14");
                 }
             }
             reader.close();
-            // System.out.println("Here 12");
+            System.out.println("Here 15");
             return true;
         }
         catch(IOException e){
