@@ -167,7 +167,6 @@ public class AuthServer {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
             if(!loadServerKeys("authpublickey.txt", "authprivatekey.txt")) {
-                System.out.println("here");
                 try {
                     KeyPair authKeys = generateKeyPair();
                     authPublicKey = authKeys.getPublic();

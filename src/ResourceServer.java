@@ -1,9 +1,13 @@
 import java.net.ServerSocket; // The server uses this to bind to a port
 import java.net.Socket; // Incoming connections are represented as sockets
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.*;
 import java.io.File;
+import java.io.IOException;
 
 public class ResourceServer {
     // port the server will use to connect
@@ -11,8 +15,8 @@ public class ResourceServer {
     // map of groups and files that each owns
     private static ResourceServer server;
 
-    private static PublicKey rsPubKey;
-    private static PrivateKey rsPrivKey;
+    private static PublicKey resPublicKey;
+    private static PrivateKey resPrivateKey;
 
     private static PublicKey authPublicKey;
     
@@ -30,8 +34,60 @@ public class ResourceServer {
         return authPublicKey;
     }
 
+    public PublicKey getPublicKey() {
+        return resPublicKey;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return resPrivateKey;
+    }
+
+    public static KeyPair generateKeyPair() throws Exception {
+        // Create key generator using RSA and BouncyCastle
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "BC");
+        // Initialize to create 4096-bit key pairs
+        keyGen.initialize(4096, new SecureRandom());
+        // Generate and return key
+        return keyGen.generateKeyPair();
+    }
+    
+    public static boolean loadServerKeys(String publicKeyFilename, String privateKeyFilename) {
+        try {
+            resPrivateKey = KeyIO.readPrivateKeyFromFile(privateKeyFilename);
+            resPublicKey = KeyIO.readPublicKeyFromFile(publicKeyFilename);
+            if(resPrivateKey == null || resPublicKey == null) return false;
+            return true;
+        } catch (Exception e) {
+            System.out.println("error reading keys from files : " + e.getMessage());
+            return false;
+        }
+    }
+
     public void start() {
         try{
+            // obtain AS public key
+            authPublicKey = KeyIO.readPublicKeyFromFile("respublickey.txt");
+
+            // obtain RS keys
+            if(!loadServerKeys("respublickey.txt", "resprivatekey.txt")) {
+                try {
+                    KeyPair authKeys = generateKeyPair();
+                    resPublicKey = authKeys.getPublic();
+                    resPrivateKey = authKeys.getPrivate();
+                } catch (Exception a) {
+                    a.printStackTrace();
+                    System.out.println("We're cooked.");
+                    System.exit(1);
+                }
+                //savetofile
+                try {
+                    KeyIO.writeKeyToFile("respublickey.txt", resPublicKey.getEncoded());
+                    KeyIO.writeKeyToFile("resprivatekey.txt", resPrivateKey.getEncoded());
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+            
             // This is basically just listens for new client connections
             Scanner scanner = new Scanner(System.in);
             int ResourcePort;
@@ -40,9 +96,6 @@ public class ResourceServer {
             ResourcePort = scanner.nextInt();
             final ServerSocket serverSock = new ServerSocket(ResourcePort);
             scanner.close();
-           
-            // obtain AS public key
-            authPublicKey = KeyIO.readPublicKeyFromFile("authpublickey.txt");
 
             // A simple infinite loop to accept connections
             Socket sock = null;
