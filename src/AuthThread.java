@@ -58,6 +58,7 @@ public class AuthThread extends Thread {
                         // send message with token back to client:
                         output.writeObject(new Message(msg.getCommand(), t, stuff));
                     } else {
+                        System.out.println("failing since its passing null");
                         output.writeObject(new Message(msg.getCommand(), null, null));
                     }
                     break;
@@ -65,11 +66,12 @@ public class AuthThread extends Thread {
                 case "verify":
                     user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
                     // authenticate the user
-                    if (authenticate(user)) {
-                        User authUser = server.getUserList().getUser(user.getUsername());
+                    User checkUser = hashPassword(user);
+                    if (authenticate(checkUser)) {
+                        User authUser = server.getUserList().getUser(checkUser.getUsername());
                         // get user from the username in the token
                         t = generateToken(authUser);
-                        stuff.add(user);
+                        stuff.add(checkUser);
                         // send message with token back to client:
                         output.writeObject(new Message(msg.getCommand(), t, stuff));
                     } else {
@@ -239,7 +241,8 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        System.out.println(user.getUsername() + "\n" + user.getPassword() + "\n"+ user.getGroup() +"\n"+ user.getSalt());
+        User authUser= hashPassword(user);
+        System.out.println(authUser.getUsername() + "\n" + authUser.getPassword() + "\n"+ authUser.getGroup() +"\n"+ authUser.getSalt());
         if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(user))== true) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
@@ -249,9 +252,6 @@ public class AuthThread extends Thread {
 
             return true;
         } 
-        else if(user.getUsername().equals("root")){
-            return true; //DELETE THIS ITS JUST FOR TESTING
-        }
         else {
             System.out.println("User and/or Group does not exist");
             return false;
@@ -303,10 +303,14 @@ public class AuthThread extends Thread {
         //hash said password
         //return new user with hashed password
         String salt = BCrypt.gensalt();
-        String saltedPassword = BCrypt.hashpw(originalUser.getPassword(), salt);
-        String newSalt = salt;
-        User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), newSalt);
+        System.out.println("The salt is: " + salt);
 
+        String saltedPassword = BCrypt.hashpw(originalUser.getPassword(), salt);
+        if(originalUser.getSalt().equals("$2b$00$0000000000000000000000")){
+            originalUser.setSalt(salt);
+        }
+        User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), salt);
+        saltedUser.setSalt(salt);
         return saltedUser;
         // return null;
     }
@@ -320,7 +324,7 @@ public class AuthThread extends Thread {
         User realUser = server.getUserList().getUser(unverifiedUser.getUsername()); //the user that should be in users.txt
         String verifiedPassword = realUser.getPassword(); //the password that should be in users.txt
         String salt = realUser.getSalt(); //get the public salt
-        String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), salt); //hash the input password with the salt
+        String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), unverifiedUser.getSalt()); //hash the input password with the salt
         if(hashedPassword.equals(verifiedPassword)){ //if it matches the hashed password of the user and the hash of the input
             return true; //allow access
         }

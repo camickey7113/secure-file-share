@@ -160,7 +160,7 @@ public class Client {
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
-                        String salt = null; //ungenerated salt
+                        String salt = "$2b$00$0000000000000000000000"; //ungenerated salt
                         stuff.add(createUser(username, password, group, salt));
                         authOutput.writeObject(new Message("create", null, stuff));
                         resourceOutput.writeObject(new Message("create", null, stuff));

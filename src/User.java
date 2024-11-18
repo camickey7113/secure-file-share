@@ -28,8 +28,8 @@ public class User implements java.io.Serializable {
         return this.username;
     }
 
-    public String setSalt(String salt){
-        return this.salt;
+    public void setSalt(String salt){
+        this.salt = salt;
     }
     public String getSalt() { 
         return this.salt; 
