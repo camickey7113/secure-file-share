@@ -60,14 +60,6 @@ public class Client {
         return true;
     }
 
-    public static User createUser(String username, String password, String group){
-        User newUser = new User(username, password, group);
-        
-        return newUser;
-      
-
-    }
-
     public static boolean connectToResourceServer() {
         System.out.print("Enter resource server name: ");
         ResourceIP = scanner.next();
@@ -93,6 +85,11 @@ public class Client {
 
         System.out.println("Successful connection to Resource Server");
         return true;
+    }
+
+    public static User createUser(String username, String password, String group){
+        User newUser = new User(username, password, group);
+        return newUser;
     }
 
     // returns a Token that corresponds to the current user or null if the current
@@ -342,6 +339,11 @@ public class Client {
                 }
             } else {
                 Message resp = (Message) resourceInput.readObject();
+                // if signature is null, signature was rejected
+                if (resp.getSignature() == null) {
+                    System.out.println("Something's fishy...");
+                    return false;
+                }
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
@@ -467,17 +469,18 @@ public class Client {
             // loop to accept commands
             Message msg;
             try {
+                Token t = verifyUser();
+                
                 while (currentUser != null) {
                     // authenticate user
-                    Token t = verifyUser();
                     // if unable to verify, user will need to re-login
-                    if (t == null) {
-                        System.out.println("Permission has been revoked. Please contact admin.");
-                        logout();
-                        continue;
-                    } else {
-                        System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
-                    }
+                    // if (t == null) {
+                    //     System.out.println("Permission has been revoked. Please contact admin.");
+                    //     logout();
+                    //     continue;
+                    // } else {
+                    //     System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
+                    // }
 
                     // input command
                     String inputs = readSomeText();

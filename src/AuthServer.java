@@ -1,6 +1,8 @@
 import java.net.ServerSocket; // The server uses this to bind to a port
 import java.net.Socket; // Incoming connections are represented as sockets
+import java.security.*;
 import java.util.*;
+
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -13,7 +15,9 @@ public class AuthServer {
     // list of all users in the system
     private static UserList userList;
     public static GroupList groups;
-    //Group newGroup;
+    
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
 
     private static AuthServer server;
 
@@ -27,6 +31,14 @@ public class AuthServer {
     }
     public GroupList getGroupList() {
         return groups;
+    }
+
+    public PublicKey getPublicKey() {
+        return publicKey;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return privateKey;
     }
     
     public static boolean loadUserAndGroupList(File userFile, File groupFile) {
@@ -104,12 +116,13 @@ public class AuthServer {
         }
     }
 
-    public void listenOnPort(int port) {
-
-    }
-
-    public void acceptIncomingConnection() {
-
+    public KeyPair generateKeyPair() throws Exception {
+        // Create key generator using RSA and BouncyCastle
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "BC");
+        // Initialize to create 4096-bit key pairs
+        keyGen.initialize(4096, new SecureRandom());
+        // Generate and return key
+        return keyGen.generateKeyPair();
     }
 
     public void start() {
@@ -125,7 +138,11 @@ public class AuthServer {
             Socket sock = null;
             AuthThread thread = null;
 
-           
+            // generate keypair
+            KeyPair keys = generateKeyPair();
+            publicKey = keys.getPublic();
+            privateKey = keys.getPrivate();
+
             while (true) {
                 sock = serverSock.accept(); // Accept an incoming connection
                 thread = new AuthThread(this, sock); // Create a thread to handle this connection
@@ -140,6 +157,8 @@ public class AuthServer {
     }
 
     public static void main(String[] args) {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
         server = new AuthServer();
         File usersFile = new File("users.txt");
         File groupFile = new File("groups.txt");

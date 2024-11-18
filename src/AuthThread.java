@@ -1,8 +1,12 @@
 import java.lang.Thread;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
+import java.security.*;
 
 public class AuthThread extends Thread {
     private AuthServer server;
@@ -23,7 +27,7 @@ public class AuthThread extends Thread {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
-       
+        Message m = null;
 
         try {
             switch (msg.getCommand()) {
@@ -35,10 +39,12 @@ public class AuthThread extends Thread {
                         // get user from the username in the token
                         t = generateToken(authUser);
                         stuff.add(user);
+                        // create signature
+                        byte[] signature = sign(hashToken(m.getToken()), server.getPrivateKey());
                         // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        m = new Message(msg.getCommand(), t, signature, stuff);
                     } else {
-                        output.writeObject(new Message(msg.getCommand(), null, null));
+                        m = new Message(msg.getCommand(), null, null);
                     }
                     break;
                     
@@ -51,9 +57,9 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        output.writeObject(new Message(msg.getCommand(), t, stuff));
+                        m = new Message(msg.getCommand(), t, stuff);
                     } else {
-                        output.writeObject(new Message(msg.getCommand(), null, null));
+                        m = new Message(msg.getCommand(), null, null);
                     }
                     break;
 
@@ -67,18 +73,18 @@ public class AuthThread extends Thread {
                     if(g == null){
                         stuff.add(false);
                         stuff.add("not a valid group");
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        m = new Message(msg.getCommand(), null, stuff);
                         break;
                     }
 
                     stuff.add(true);
-                    HashMap<String, User> m = g.getMembers().getUserMap();
+                    HashMap<String, User> map = g.getMembers().getUserMap();
                     //populate arraylist with usernames
-                    for(String key: m.keySet()){
+                    for(String key: map.keySet()){
                         members.add(key);
                     }
                     stuff.add(members);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
 
                     break;
 
@@ -107,7 +113,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     break;
 
               case "delete":    
@@ -127,7 +133,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                     }
                    
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     break;
 
                 case "collect":
@@ -138,7 +144,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                        output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        m = new Message(msg.getCommand(), null, stuff);
                     break;
 
                 case "empty":
@@ -150,7 +156,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(true);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     stuff.remove(0);
                     break;
 
@@ -167,7 +173,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     break;
 
                 case "assign":
@@ -189,7 +195,7 @@ public class AuthThread extends Thread {
                         stuff.add(true);
 
                     }
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     // change group in user object
                     break;
 
@@ -197,21 +203,56 @@ public class AuthThread extends Thread {
                     // return list of groups
                     stuff.add(true);
                     stuff.add(server.getGroupList().getGroupNames());
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     break;
 
                 case "null":
                     stuff.add(false);
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    m = new Message(msg.getCommand(), null, stuff);
                     break;
-
-                
             }
+            signAndSend(m, output);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        
         return true;
+    }
+
+    @Deprecated
+    public boolean signAndSend(Message m, ObjectOutputStream output) {
+        try {
+            // generate hashed token
+            // sign hashed token
+            if (m.getToken() != null) {
+                byte[] signature = sign(hashToken(m.getToken()), server.getPrivateKey());
+                m.setSignature(signature);
+            }
+            // output to socket
+            output.writeObject(m);
+            return true;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
+    }
+
+    public byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
+        signature.initSign(privateKey);
+
+        signature.update(hashedToken);
+
+        return signature.sign();
+    }
+
+    public byte[] hashToken(Token t) {
+        try {
+            MessageDigest mdig = MessageDigest.getInstance("SHA-256");
+            return mdig.digest(t.toString().getBytes());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
     // This function accepts a potential user object to be confirmed to exist in the

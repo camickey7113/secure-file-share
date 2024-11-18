@@ -30,4 +30,8 @@ public class Token implements java.io.Serializable {
 	public void setUser(String username){
 		this.username = username;
 	}
+
+	public String toString() {
+		return username + group;
+	}
 }
