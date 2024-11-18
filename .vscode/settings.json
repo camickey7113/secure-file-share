@@ -4,6 +4,6 @@
     ],
     "java.project.outputPath": "bin",
     "java.project.referencedLibraries":[
-        "bcprov-jdk18on-1.78.1.jar",
+        "lib/bcprov-jdk18on-1.78.1.jar",
     ]
 }

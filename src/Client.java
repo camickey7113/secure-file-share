@@ -1,14 +1,30 @@
-import java.net.Socket; // Used to connect to the server
-import java.io.ObjectInputStream; // Used to read objects sent from the server
-import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.io.BufferedReader; // Needed to read from the console
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader; // Needed to read from the console
-import java.io.ObjectInput;
-import java.util.*;
+import java.io.ObjectInputStream; // Used to read objects sent from the server
+import java.io.ObjectOutputStream; // Used to write objects to the server
+import java.net.Socket; // Used to connect to the server
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class Client {
     // Set up I/O streams with the Auth server
@@ -30,31 +46,74 @@ public class Client {
     private static User currentUser;
     private static User newUser;
 
-    public final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public static Scanner scanner = new Scanner(System.in);
 
-    static String provider = BouncyCastleProvider.PROVIDER_NAME;
+    
 
     //Symmetric Encryption
-    public static byte[][] encyptSendMsg(SecretKey AESkey, Message msg){
-        Cipher aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", provider); 
-        aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-        byte[] nonsense = msg.serialize();
-        byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
-        return ret;
+    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Cipher aesc;
+        try {
+            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+            aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+            byte[] nonsense = serialize(msg);
+            byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
+            return ret;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } 
+    }
+
+    //Symmetric Decryption
+    public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Cipher aesc;
+        try {
+            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+            aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
+            byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
+            return (Message) deserialize(decrypted);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        
     }
 
     //takes a generic serializable object and then turns it into a byte array for encryption
-    public byte[] serialize() throws IOException{ 
+    public static byte[] serialize(Object obj){ 
         try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
             try(ObjectOutputStream o = new ObjectOutputStream(b)){
-                o.writeObject(this);
+                o.writeObject(obj);
+            } catch (Exception e){
+                System.out.println("Error during serialization: "+ e.getMessage());
+                return null;
             }
             return b.toByteArray();
+        } catch (Exception e){
+            System.out.println("Error during serialization: "+ e.getMessage());
+            return null;
         }
     }
 
+    //takes in a byte stream and returns a generic object 
+    public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
+        try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
+            try(ObjectInputStream i = new ObjectInputStream(b)){
+                return i.readObject();
+            } catch (Exception e){
+                System.out.println("Error during deserialization: "+ e.getMessage());
+                return null;
+            }
+        } catch (Exception e){
+            System.out.println("Error during deserialization: "+ e.getMessage());
+            return null;
+        }
+    }
 
 
     public static boolean connectToAuthServer() {
@@ -244,9 +303,12 @@ public class Client {
                         return 0;
                 }
             } else {
+                SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+                byte[][] encryptedStuff;
                 switch (split[0]) {
                     case "list":
-                        resourceOutput.writeObject(new Message("list", t, null));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("list", t, null));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "upload":
@@ -264,15 +326,16 @@ public class Client {
                             }
                         }
                         stuff.add(fileData);
-                        
-
-                        resourceOutput.writeObject();
+                        //new encryption bullshit
+                        encryptedStuff = symmEncrypt(AESkey, new Message("upload", t, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "download":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        resourceOutput.writeObject(new Message("download", t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("download", t, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     default:
@@ -475,8 +538,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-
+        
         // connect to AS and RS
         if (connectToAuthServer() && connectToResourceServer()) {
             System.out.println("Success! Both servers have connected!\n");

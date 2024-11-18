@@ -1,5 +1,8 @@
 import java.lang.Thread; // We will extend Java's base Thread class
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,10 +11,21 @@ import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
 import java.util.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 public class ResourceThread extends Thread {
     private ResourceServer server;
     private final Socket socket; // The socket that we'll be talking over
     private Message msg;
+
+
+    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+
 
     /**
      * Constructor that sets up the socket we'll chat over
@@ -68,13 +82,16 @@ public class ResourceThread extends Thread {
         Token t = msg.getToken();
 
         try {
+            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+            byte[][] encryptedStuff;
             switch (msg.getCommand()) {
                 case "list":
                     ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     System.out.println("Sending back list message...");
-                    output.writeObject(new Message(msg.getCommand(), null, stuff));
+                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                    output.writeObject(encryptedStuff);
 
                     // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
                     // if(directory.isDirectory()) {
@@ -183,5 +200,71 @@ public class ResourceThread extends Thread {
 
         
     }
+
+    //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
+    //Symmetric Encryption
+    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Cipher aesc;
+        try {
+            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+            aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+            byte[] nonsense = serialize(msg);
+            byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
+            return ret;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } 
+    }
+
+    //Symmetric Decryption
+    public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Cipher aesc;
+        try {
+            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+            aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
+            byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
+            return (Message) deserialize(decrypted);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        
+    }
+
+    //takes a generic serializable object and then turns it into a byte array for encryption
+    public static byte[] serialize(Object obj){ 
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            } catch (Exception e){
+                System.out.println("Error during serialization: "+ e.getMessage());
+                return null;
+            }
+            return b.toByteArray();
+        } catch (Exception e){
+            System.out.println("Error during serialization: "+ e.getMessage());
+            return null;
+        }
+    }
+
+    //takes in a byte stream and returns a generic object 
+    public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
+        try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
+            try(ObjectInputStream i = new ObjectInputStream(b)){
+                return i.readObject();
+            } catch (Exception e){
+                System.out.println("Error during deserialization: "+ e.getMessage());
+                return null;
+            }
+        } catch (Exception e){
+            System.out.println("Error during deserialization: "+ e.getMessage());
+            return null;
+        }
+    }
+
+
 
 } // -- end class ResourceThread
