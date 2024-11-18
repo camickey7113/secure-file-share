@@ -196,10 +196,13 @@ public class AuthServer {
         File groupFile = new File("groups.txt");
         File publicKeyFile = new File("public_keys.txt");
         try {
-            loadUserAndGroupList(usersFile, groupFile);
+            if (!loadUserAndGroupList(usersFile, groupFile)) {
+                System.out.println("Error Loading User and Group Lists");
+            }
             loadPublicKeys(publicKeyFile);
         } catch (Exception e) {
-            System.out.println("Error Loading Users");
+            System.out.println("Error Loading Public Keys: " + e.getMessage());
+            e.printStackTrace();
         }
         server.start();
     }
