@@ -43,6 +43,9 @@ public class AuthThread extends Thread {
                     if (authenticate(user)) {
                         System.out.print("here!!!");
                         System.out.print("this is the user username" + user.getUsername());
+                        for(User user: userList){
+                            System.out.println(user.getUsername());
+                        }
                         User authUser = server.getUserList().getUser(user.getUsername()); //this is whats failing
                         // get user from the username in the token
                         System.out.print("failed here!!!");
