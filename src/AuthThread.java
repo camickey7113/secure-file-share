@@ -66,6 +66,7 @@ public class AuthThread extends Thread {
                 case "verify":
                     user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
                     // authenticate the user
+                    
                     User checkUser = hashPassword(user);
                     if (authenticate(checkUser)) {
                         User authUser = server.getUserList().getUser(checkUser.getUsername());
@@ -243,7 +244,7 @@ public class AuthThread extends Thread {
     public boolean authenticate(User user) {
         User authUser= hashPassword(user);
         System.out.println(authUser.getUsername() + "\n" + authUser.getPassword() + "\n"+ authUser.getGroup() +"\n"+ authUser.getSalt());
-        if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(user))== true) {
+        if(((server.getUserList()).containsUser(user.getUsername())) ==true && (checkHashedPassword(authUser))== true) {
             System.out.println("Username and Password accepted.");
             // if(!GroupList.containsGroup(user.getGroup())) {
             //     System.out.println("We messed up");
@@ -304,14 +305,22 @@ public class AuthThread extends Thread {
         //return new user with hashed password
         String salt = BCrypt.gensalt();
         System.out.println("The salt is: " + salt);
+        System.out.println("The original user info:\n\n"+ originalUser.getUsername() + "\n" + originalUser.getPassword() + "\n"+ originalUser.getGroup() +"\n"+ originalUser.getSalt());
 
         String saltedPassword = BCrypt.hashpw(originalUser.getPassword(), salt);
-        if(originalUser.getSalt().equals("$2b$00$0000000000000000000000")){
+        System.out.println("This is happening");
+        if(originalUser.getSalt() == null || originalUser.getSalt().equals("$2b$00$0000000000000000000000")){
             originalUser.setSalt(salt);
         }
-        User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), salt);
-        saltedUser.setSalt(salt);
-        return saltedUser;
+        System.out.println("This is happening here");
+        System.out.println("The salted user info:\n\n"+ originalUser.getUsername() + "\n" + originalUser.getPassword() + "\n"+ originalUser.getGroup() +"\n"+ originalUser.getSalt());
+
+        originalUser.setPassword(saltedPassword);
+        //User saltedUser = new User(originalUser.getUsername(), saltedPassword, originalUser.getGroup(), salt);
+        server.getUserList().addUser(originalUser);
+        server.saveUserList("users.txt");
+        System.out.println("now we're here");
+        return originalUser;
         // return null;
     }
 
@@ -322,6 +331,7 @@ public class AuthThread extends Thread {
         //hash the password that the user input
         //check that the hash and what the user input matches
         User realUser = server.getUserList().getUser(unverifiedUser.getUsername()); //the user that should be in users.txt
+       // System.out.print("checkHashedPW salt" + unverifiedUser.getSalt());
         String verifiedPassword = realUser.getPassword(); //the password that should be in users.txt
         String salt = realUser.getSalt(); //get the public salt
         String hashedPassword = BCrypt.hashpw(unverifiedUser.getPassword(), unverifiedUser.getSalt()); //hash the input password with the salt

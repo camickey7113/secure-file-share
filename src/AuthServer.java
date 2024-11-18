@@ -94,7 +94,7 @@ public class AuthServer {
             w.write("");
             HashMap<String, User> u = userList.getUserMap();
             for(User user: u.values()){
-                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup()+ System.lineSeparator());
+                w.append(user.getUsername()+","+user.getPassword()+","+user.getGroup() + ","+ user.getSalt() + System.lineSeparator());
             }
             w.close();
             return true;
