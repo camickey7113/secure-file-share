@@ -19,16 +19,6 @@ public class ResourceServer {
     private static PrivateKey resPrivateKey;
 
     private static PublicKey authPublicKey;
-    
-    
-
-    public void listenOnPort(int port) {
-
-    }
-
-    public void acceptIncomingConnection() {
-
-    }
 
     public PublicKey getAuthKey() {
         return authPublicKey;
@@ -87,7 +77,7 @@ public class ResourceServer {
                     e1.printStackTrace();
                 }
             }
-            
+
             // This is basically just listens for new client connections
             Scanner scanner = new Scanner(System.in);
             int ResourcePort;
@@ -106,7 +96,6 @@ public class ResourceServer {
                 thread.start();                 // Fork the thread
             }                                   // Loop to work on new connections while this
                                                 // the accept()ed connection is handled
-
         }
         catch(Exception e){
             System.err.println("Error: " + e.getMessage());
