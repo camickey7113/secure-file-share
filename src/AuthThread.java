@@ -284,6 +284,7 @@ public class AuthThread extends Thread {
             Message msg = null;
 
             //diffie hellman bullshit
+            // auth thread generate DH key pairs
             
             do {
                 // read and print message
