@@ -9,6 +9,12 @@ import java.io.ObjectInputStream; // For reading Java objects off of the wire
 import java.io.ObjectOutputStream; // For writing Java objects to the wire
 import java.util.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 
 public class ResourceThread extends Thread {
@@ -28,6 +34,29 @@ public class ResourceThread extends Thread {
         this.socket = socket;
     }
 
+    // dh stuff
+    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
+        paramGen.init(2048);
+        AlgorithmParameters params = paramGen.generateParameters();
+        DHParameterSpec dhSpec = params.getParameterSpec(DHParameterSpec.class);
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
+        keyGen.initialize(dhSpec);
+        return keyGen.generateKeyPair();
+    }
+
+        private static SecretKey deriveAESKey(PrivateKey privateKey, PublicKey publicKey) throws Exception {
+        KeyAgreement keyAgree = KeyAgreement.getInstance("DH");
+        keyAgree.init(privateKey);
+        keyAgree.doPhase(publicKey, true);
+        byte[] sharedSecret = keyAgree.generateSecret();
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] aesKeyBytes = sha256.digest(sharedSecret);
+        return new SecretKeySpec(aesKeyBytes, 0, 16, "AES");
+    }
+
+
     /**
      * run() is basically the main method of a thread. This thread
      * simply reads Message objects off of the socket.
@@ -37,15 +66,44 @@ public class ResourceThread extends Thread {
         try {
 
             // Print incoming message
+            Security.addProvider(new BouncyCastleProvider());
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
             final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
             final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 
+            // diffiehellman bullshit
+            System.out.println("doing dh");
+            KeyPair serverDHKeys = generateDHKeyPair();
+            PublicKey serverPublicKey = serverDHKeys.getPublic();
 
-            //diffiehellman bullshit
+            // get cleints public dh key
+            PublicKey clientPublicKey = (PublicKey) input.readObject();
+            System.out.println("Received clients public key");
 
+            // derive shared AES session key 
+            SecretKey aesKey = deriveAESKey(serverDHKeys.getPrivate(), clientPublicKey);
+            System.out.println("Derived shared AES session key.");
+
+
+            // sign server's public key and send it to the client
+            Signature signer = Signature.getInstance("SHA256withRSA/PSS", "BC");
+            signer.initSign(server.getPrivateKey()); // use the server's private RSA key
+            signer.update(serverPublicKey.getEncoded());
+            byte[] signature = signer.sign();
+
+            output.writeObject(serverPublicKey); // send server's public dh key
+            output.writeObject(signature);      // send the signature
+            output.flush();
+
+            // encrypt a confirmation message using the session key
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+            byte[] confirmationMessage = cipher.doFinal("OK".getBytes());
+            output.writeObject(confirmationMessage); // send confirmation to client
+            output.flush();
+            System.out.println("Handshake complete");
 
             // Loop to read messages
             Message msg = null;
@@ -60,7 +118,7 @@ public class ResourceThread extends Thread {
                 handleClientRequest(msg, output);
 
             } while (!msg.getCommand().equals("exit"));
-            
+
             // cleanup
             socket.close();
 
@@ -70,11 +128,10 @@ public class ResourceThread extends Thread {
         }
     }
 
-
     private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
-        
+
         // check signature before proceeding
         if (!verify(t, msg.getSignature())) {
             System.out.println("Signature not verified.");
@@ -86,16 +143,18 @@ public class ResourceThread extends Thread {
         try {
             switch (msg.getCommand()) {
                 case "list":
-                    ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
+                    ProcessBuilder pb = new ProcessBuilder("bash", "-c",
+                            "cd /src/group" + File.separator + t.getGroup() + "; ls");
                     Process process = pb.start();
                     stuff.add(new String(process.getInputStream().readAllBytes()));
                     System.out.println("Sending back list message...");
                     // output.writeObject(new Message(msg.getCommand(), null, stuff));
 
-                    // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
+                    // File directory = new File("group" + File.separator + t.getGroup() +
+                    // File.separator);
                     // if(directory.isDirectory()) {
-                    //     String[] files = directory.list();
-                    //     stuff.add(files);
+                    // String[] files = directory.list();
+                    // stuff.add(files);
                     // }
                     // System.out.println("Sending back list message...");
                     // output.writeObject(new Message(msg.getCommand(), null, stuff));
@@ -103,15 +162,16 @@ public class ResourceThread extends Thread {
 
                 case "upload":
                     try {
-                        File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                        File file = new File(
+                                "group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
                         file.createNewFile();
 
                         FileOutputStream fout = new FileOutputStream(file);
-                        fout.write((byte[])msg.getStuff().get(1));
+                        fout.write((byte[]) msg.getStuff().get(1));
 
                         stuff.add(true);
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         stuff.add(false);
                         // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
@@ -120,7 +180,8 @@ public class ResourceThread extends Thread {
                 case "download":
                     try {
                         // Search user's group folder for file
-                        File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                        File file = new File(
+                                "group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
                         byte[] fileData = new byte[(int) file.length()];
                         // Use FileInputStream to read the file into the byte array
                         try (FileInputStream fileInputStream = new FileInputStream(file)) {
@@ -133,7 +194,7 @@ public class ResourceThread extends Thread {
                         stuff.add(msg.getStuff().get(0));
                         stuff.add(fileData);
                         output.writeObject(new Message(msg.getCommand(), null, stuff));
-                    } catch (Exception e){
+                    } catch (Exception e) {
                         stuff.add(false);
                         // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     }
@@ -141,8 +202,9 @@ public class ResourceThread extends Thread {
 
                 case "delete":
                     // Search user's group folder for file
-                    File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
-                    if(file.isFile()) {
+                    File file = new File(
+                            "group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                    if (file.isFile()) {
                         file.delete();
                         stuff.add(true);
                     } else {
@@ -162,7 +224,7 @@ public class ResourceThread extends Thread {
                 case "release":
                     String directoryPath2 = "group" + File.separator + msg.getStuff().get(0);
                     File directory2 = new File(directoryPath2);
-                    if(directory2.isDirectory()) {
+                    if (directory2.isDirectory()) {
                         for (File subfile : directory2.listFiles()) {
                             subfile.delete();
                         }
@@ -175,15 +237,15 @@ public class ResourceThread extends Thread {
                     break;
 
                 case "create":
-                    String newGroup = ((User)msg.getStuff().get(0)).getGroup();
+                    String newGroup = ((User) msg.getStuff().get(0)).getGroup();
                     // check if group folder exists
                     String directoryPath3 = "group" + File.separator + newGroup;
                     File directory3 = new File(directoryPath3);
                     // if it exists
-                    if(!directory3.isDirectory()) {
+                    if (!directory3.isDirectory()) {
                         // create directory
                         boolean directoryCreated3 = directory3.mkdir();
-                        stuff.add(directoryCreated3); 
+                        stuff.add(directoryCreated3);
                     }
                     // output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;

@@ -1,2 +1,3 @@
-user1,pass1,group1
-root,root,null
+user1,$2a$10$wNCvyccWjrXl4tC0YW6d/eUj5ggBG.QekJD0W7CoeMs/B85nai89G,group1,$2a$10$wNCvyccWjrXl4tC0YW6d/e
+user2,$2a$10$yh4k7fefvQrAtYd..Ks1rOj1KvM0ECnKmvZ8Td7od.S/x/4dkf3nO,group2,$2a$10$yh4k7fefvQrAtYd..Ks1rO
+root,root,null,null

@@ -1,5 +1,4 @@
 import java.net.Socket; // Used to connect to the server
-import java.security.PublicKey;
 import java.io.ObjectInputStream; // Used to read objects sent from the server
 import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.io.BufferedReader; // Needed to read from the console
@@ -9,6 +8,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader; // Needed to read from the console
 import java.io.ObjectInput;
+import java.security.*;
+import java.security.spec.*;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+
 import java.util.*;
 
 public class Client {
@@ -36,10 +40,10 @@ public class Client {
     public static boolean connectToAuthServer() {
         System.out.print("Enter authentication server name: ");
         AuthIP = scanner.next();
-        //AuthIP = "localhost";
+        // AuthIP = "localhost";
         System.out.print("Enter authentication server port: ");
         AuthPortNumber = scanner.nextInt();
-        //AuthPortNumber = 8765;
+        // AuthPortNumber = 8765;
         try {
             authSock = new Socket(AuthIP, AuthPortNumber);
         } catch (Exception e) {
@@ -61,22 +65,88 @@ public class Client {
         return true;
     }
 
-    public static User createUser(String username, String password, String group, String salt){
-        
+    public static User createUser(String username, String password, String group, String salt) {
+
         User newUser = new User(username, password, group, salt);
-        
+
         return newUser;
-      
 
     }
+
+
+    // dh stuff 
+
+    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
+        paramGen.init(2048);
+        // initilize diffie hellman size 2048
+        AlgorithmParameters params = paramGen.generateParameters();
+        DHParameterSpec dhSpec = params.getParameterSpec(DHParameterSpec.class);
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
+        keyGen.initialize(dhSpec);
+        return keyGen.generateKeyPair();
+
+    }
+
+    private static SecretKey deriveAESKey(PrivateKey privateKey, PublicKey publicKey) throws Exception {
+        KeyAgreement keyAgree = KeyAgreement.getInstance("DH");
+        keyAgree.init(privateKey);
+        keyAgree.doPhase(publicKey, true);
+        byte[] sharedSecret = keyAgree.generateSecret();
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] aesKeyBytes = sha256.digest(sharedSecret);
+        return new SecretKeySpec(aesKeyBytes, 0, 16, "AES");
+    }
+
+    public static void performHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception {
+        // generate DH key pair
+        KeyPair clientDHKeys = generateDHKeyPair();
+        PublicKey clientPublicKey = clientDHKeys.getPublic();
+
+        // send client's public DH key to server
+        output.writeObject(clientPublicKey);
+        output.flush();
+
+        // receive servers public key and signature
+        PublicKey serverPublicKey = (PublicKey) input.readObject();
+        byte[] serverSignature = (byte[]) input.readObject();
+
+        // verify servers identity
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(serverPublicKey); // Replace with a pre-shared server public key
+        verifier.update(serverPublicKey.getEncoded());
+        if (!verifier.verify(serverSignature)) {
+            throw new SecurityException("Server verification failed!");
+        }
+
+        // derive aes session key
+        SecretKey aesKey = deriveAESKey(clientDHKeys.getPrivate(), serverPublicKey);
+
+        // confirm session key
+        byte[] confirmationMessage = (byte[]) input.readObject();
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.DECRYPT_MODE, aesKey);
+        String confirmation = new String(cipher.doFinal(confirmationMessage));
+        if (!"SLAY".equals(confirmation)) {
+            throw new SecurityException("Session key confirmation failed!");
+        }
+
+        // further communication can now use aesKey for encryption
+    }
+
+
+    ////// end dh stuff ///////////
+
+
 
     public static boolean connectToResourceServer() {
         System.out.print("Enter resource server name: ");
         ResourceIP = scanner.next();
-        //ResourceIP = "localhost";
+        // ResourceIP = "localhost";
         System.out.print("Enter resource server port: ");
         ResourcePortNumber = scanner.nextInt();
-        //ResourcePortNumber = 8766;
+        // ResourcePortNumber = 8766;
         try {
             resourceSock = new Socket(ResourceIP, ResourcePortNumber);
         } catch (Exception e) {
@@ -97,7 +167,7 @@ public class Client {
         return true;
     }
 
-    public static User createUser(String username, String password, String group){
+    public static User createUser(String username, String password, String group) {
         User newUser = new User(username, password, group, null);
         return newUser;
     }
@@ -163,18 +233,20 @@ public class Client {
             if (currentUser.getUsername().equals("root")) {
                 switch (split[0].toLowerCase()) {
                     case "create":
-                        if (split[1].isEmpty() || split[2].isEmpty() || split[3].isEmpty()) return 0;
+                        if (split[1].isEmpty() || split[2].isEmpty() || split[3].isEmpty())
+                            return 0;
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
-                        String salt = null; //ungenerated salt
+                        String salt = null; // ungenerated salt
                         stuff.add(createUser(username, password, group, salt));
                         authOutput.writeObject(new Message("create", null, stuff));
                         resourceOutput.writeObject(new Message("create", null, stuff));
                         break;
 
                     case "delete":
-                        if (split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         String name = split[1];
                         stuff.add(name);
                         authOutput.writeObject(new Message("delete", null, stuff));
@@ -195,7 +267,7 @@ public class Client {
                             return 0;
                         stuff.add(split[1]);
                         authOutput.writeObject(new Message("empty", null, stuff));
-                        if ((boolean)((Message) authInput.readObject()).getStuff().get(0)) {
+                        if ((boolean) ((Message) authInput.readObject()).getStuff().get(0)) {
                             msg = new Message("release", null, stuff);
                             authOutput.writeObject(msg);
                             resourceOutput.writeObject(msg);
@@ -208,14 +280,16 @@ public class Client {
                         break;
 
                     case "assign":
-                        if (split[1].isEmpty() || split[2].isEmpty()) return 0;
+                        if (split[1].isEmpty() || split[2].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         stuff.add(split[2]);
                         authOutput.writeObject(new Message("assign", null, stuff));
                         break;
 
                     case "list":
-                        if (split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         authOutput.writeObject(new Message("list", null, stuff));
                         break;
@@ -252,7 +326,8 @@ public class Client {
                         break;
 
                     case "download":
-                        if (split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("download", t, signature, stuff));
                         break;
@@ -261,7 +336,8 @@ public class Client {
                         return 0;
 
                     case "delete":
-                        if (split[1].isEmpty()) return 0;
+                        if (split[1].isEmpty())
+                            return 0;
                         stuff.add(split[1]);
                         resourceOutput.writeObject(new Message("delete", t, signature, stuff));
                         break;
@@ -274,7 +350,6 @@ public class Client {
         return 2;
     }
 
-    
     public static boolean handleResponse() {
         try {
             Message authResp;
@@ -283,7 +358,7 @@ public class Client {
                 authResp = (Message) authInput.readObject();
                 switch (authResp.getCommand()) {
                     case "create":
-                        if((boolean)authResp.getStuff().get(0)){
+                        if ((boolean) authResp.getStuff().get(0)) {
                             System.out.println("Created new user.");
                         } else {
                             System.out.println("Failed to create new user.");
@@ -291,7 +366,7 @@ public class Client {
                         return true;
 
                     case "delete":
-                        if((boolean)authResp.getStuff().get(0)){
+                        if ((boolean) authResp.getStuff().get(0)) {
                             System.out.println("Deleted user.");
                         } else {
                             System.out.println("Failed to delete user.");
@@ -300,51 +375,51 @@ public class Client {
 
                     case "collect":
                         resResp = (Message) resourceInput.readObject();
-                        if((boolean)authResp.getStuff().get(0)){
+                        if ((boolean) authResp.getStuff().get(0)) {
                             System.out.println("Succesfully collected group.");
                         } else {
                             System.out.println("Failed to collect group.");
                         }
-                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
+                        return (boolean) authResp.getStuff().get(0) && (boolean) resResp.getStuff().get(0);
 
                     case "release":
                         resResp = (Message) resourceInput.readObject();
-                        if((boolean)authResp.getStuff().get(0)){
+                        if ((boolean) authResp.getStuff().get(0)) {
                             System.out.println("Succesfully released group.");
                         } else {
                             System.out.println("Failed to release group, not empty or doesn't exist.");
                         }
-                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
+                        return (boolean) authResp.getStuff().get(0) && (boolean) resResp.getStuff().get(0);
 
                     case "assign":
-                        if((boolean)authResp.getStuff().get(0)){
+                        if ((boolean) authResp.getStuff().get(0)) {
                             System.out.println("Succesfully assigned user to group");
                             return true;
                         } else {
                             System.out.println("Failed to assign user to group -> either group or user" +
-                            " is invalid");
+                                    " is invalid");
                             return false;
                         }
 
                     case "list":
                         if ((boolean) authResp.getStuff().get(0)) {
                             @SuppressWarnings("unchecked")
-							ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
-                            for(int i = 0; i < members.size(); i++){
+                            ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
+                            for (int i = 0; i < members.size(); i++) {
                                 System.out.println(members.get(i));
                             }
                         } else {
                             System.out.println((String) authResp.getStuff().get(1));
                         }
                         break;
-                    
+
                     case "groups":
-                        @SuppressWarnings("unchecked") 
+                        @SuppressWarnings("unchecked")
                         ArrayList<String> groups = (ArrayList<String>) authResp.getStuff().get(1);
                         for (String s : groups) {
                             System.out.println(s);
                         }
-                        return (boolean)authResp.getStuff().get(0);
+                        return (boolean) authResp.getStuff().get(0);
 
                     default:
                         return false;
@@ -382,7 +457,7 @@ public class Client {
                         break;
 
                     case "delete":
-                        if((boolean) resp.getStuff().get(0)) {
+                        if ((boolean) resp.getStuff().get(0)) {
                             System.out.println("File deleted successfully.");
                         } else {
                             System.out.println("File was unable to be deleted.");
@@ -419,20 +494,20 @@ public class Client {
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
         list.add(readCredentials());
-        //System.out.println("made it here");
+        // System.out.println("made it here");
         // send user to AS for verification
         // receive response
         try {
             authOutput.writeObject(new Message("login", null, list));
 
             Message resp = (Message) authInput.readObject();
-            if(resp.getToken() == null) {
+            if (resp.getToken() == null) {
                 return null;
             }
             System.out.println("Token Generated");
             currentUser = (User) resp.getStuff().get(0);
             return resp;
-            
+
             // ^wat dis doins
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -490,11 +565,12 @@ public class Client {
                     // authenticate user
                     // if unable to verify, user will need to re-login
                     // if (t == null) {
-                    //     System.out.println("Permission has been revoked. Please contact admin.");
-                    //     logout();
-                    //     continue;
+                    // System.out.println("Permission has been revoked. Please contact admin.");
+                    // logout();
+                    // continue;
                     // } else {
-                    //     System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
+                    // System.out.println("Successfully verified\nCurrent user: " +
+                    // currentUser.getUsername());
                     // }
 
                     // input command
@@ -558,5 +634,4 @@ public class Client {
         }
     }
 
-    
 }

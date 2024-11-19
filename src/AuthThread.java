@@ -2,12 +2,16 @@
 //package org.mindrot.jbcrypt;
 import java.lang.Thread;
 import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.Signature;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import java.security.*;
 import java.security.spec.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -16,7 +20,8 @@ import org.mindrot.jbcrypt.BCrypt;
 public class AuthThread extends Thread {
     private AuthServer server;
     private final Socket socket;
-    //public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    // public static final byte[] encodedDemoKey =
+    // "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public AuthThread(AuthServer server, Socket socket) {
         this.server = server;
@@ -24,69 +29,77 @@ public class AuthThread extends Thread {
     }
 
     // // New Symmetric Encryption Stuff
-    // // ------------------------------------------------------------------------------------------
+    // //
+    // ------------------------------------------------------------------------------------------
     // // Symmetric Encryption
     // public static byte[][] symmEncrypt(SecretKey AESkey, Message msg) {
-    //     java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-    //     Cipher aesc;
-    //     try {
-    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-    //         aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-    //         byte[] nonsense = serialize(msg);
-    //         byte[][] ret = { aesc.getIV(), aesc.doFinal(nonsense) };
-    //         return ret;
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return null;
-    //     }
+    // java.security.Security.addProvider(new
+    // org.bouncycastle.jce.provider.BouncyCastleProvider());
+    // Cipher aesc;
+    // try {
+    // aesc = Cipher.getInstance("AES/CBC/PKCS7Padding",
+    // BouncyCastleProvider.PROVIDER_NAME);
+    // aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+    // byte[] nonsense = serialize(msg);
+    // byte[][] ret = { aesc.getIV(), aesc.doFinal(nonsense) };
+    // return ret;
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // return null;
+    // }
     // }
 
     // // Symmetric Decryption
-    // public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff) {
-    //     java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-    //     Cipher aesc;
-    //     try {
-    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-    //         aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
-    //         byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
-    //         return (Message) deserialize(decrypted);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return null;
-    //     }
-
-    // }
-    //     //takes a generic serializable object and then turns it into a byte array for encryption
-    // public static byte[] serialize(Object obj){ 
-    //     try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-    //         try(ObjectOutputStream o = new ObjectOutputStream(b)){
-    //             o.writeObject(obj);
-    //         } catch (Exception e){
-    //             System.out.println("Error during serialization: "+ e.getMessage());
-    //             return null;
-    //         }
-    //         return b.toByteArray();
-    //     } catch (Exception e){
-    //         System.out.println("Error during serialization: "+ e.getMessage());
-    //         return null;
-    //     }
+    // public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff)
+    // {
+    // java.security.Security.addProvider(new
+    // org.bouncycastle.jce.provider.BouncyCastleProvider());
+    // Cipher aesc;
+    // try {
+    // aesc = Cipher.getInstance("AES/CBC/PKCS7Padding",
+    // BouncyCastleProvider.PROVIDER_NAME);
+    // aesc.init(Cipher.DECRYPT_MODE, AESkey, new
+    // IvParameterSpec(encryptedStuff[0]));
+    // byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
+    // return (Message) deserialize(decrypted);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // return null;
     // }
 
-    // //takes in a byte stream and returns a generic object 
-    // public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
-    //     try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
-    //         try(ObjectInputStream i = new ObjectInputStream(b)){
-    //             return i.readObject();
-    //         } catch (Exception e){
-    //             System.out.println("Error during deserialization: "+ e.getMessage());
-    //             return null;
-    //         }
-    //     } catch (Exception e){
-    //         System.out.println("Error during deserialization: "+ e.getMessage());
-    //         return null;
-    //     }
+    // }
+    // //takes a generic serializable object and then turns it into a byte array for
+    // encryption
+    // public static byte[] serialize(Object obj){
+    // try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+    // try(ObjectOutputStream o = new ObjectOutputStream(b)){
+    // o.writeObject(obj);
+    // } catch (Exception e){
+    // System.out.println("Error during serialization: "+ e.getMessage());
+    // return null;
+    // }
+    // return b.toByteArray();
+    // } catch (Exception e){
+    // System.out.println("Error during serialization: "+ e.getMessage());
+    // return null;
+    // }
     // }
 
+    // //takes in a byte stream and returns a generic object
+    // public static Object deserialize(byte[] nonsense) throws IOException,
+    // ClassNotFoundException{
+    // try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
+    // try(ObjectInputStream i = new ObjectInputStream(b)){
+    // return i.readObject();
+    // } catch (Exception e){
+    // System.out.println("Error during deserialization: "+ e.getMessage());
+    // return null;
+    // }
+    // } catch (Exception e){
+    // System.out.println("Error during deserialization: "+ e.getMessage());
+    // return null;
+    // }
+    // }
 
     public Token generateToken(User user) {
         Token newToken = new Token(user.getUsername(), user.getGroup());
@@ -290,12 +303,11 @@ public class AuthThread extends Thread {
                     output.writeObject(new Message(msg.getCommand(), null, stuff));
                     break;
 
-                
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        
+
         return true;
     }
 
@@ -358,6 +370,29 @@ public class AuthThread extends Thread {
         }
     }
 
+    // dh stuff
+
+    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
+        paramGen.init(2048);
+        AlgorithmParameters params = paramGen.generateParameters();
+        DHParameterSpec dhSpec = params.getParameterSpec(DHParameterSpec.class);
+
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
+        keyGen.initialize(dhSpec);
+        return keyGen.generateKeyPair();
+    }
+
+    private static SecretKey deriveAESKey(PrivateKey privateKey, PublicKey publicKey) throws Exception {
+        KeyAgreement keyAgree = KeyAgreement.getInstance("DH");
+        keyAgree.init(privateKey);
+        keyAgree.doPhase(publicKey, true);
+        byte[] sharedSecret = keyAgree.generateSecret();
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] aesKeyBytes = sha256.digest(sharedSecret);
+        return new SecretKeySpec(aesKeyBytes, 0, 16, "AES");
+    }
+
     public void run() {
         try {
             // Print incoming message
@@ -368,13 +403,55 @@ public class AuthThread extends Thread {
             final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
             final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 
+
+            // diffie hellman handshake
+            System.out.println("doing dh");
+            KeyPair serverDHKeys = generateDHKeyPair();
+            PublicKey serverPublicKey = serverDHKeys.getPublic();
+
+            // get cleints public dh key
+            PublicKey clientPublicKey = (PublicKey) input.readObject();
+            System.out.println("Received clients public key");
+
+            // derive shared AES session key 
+            SecretKey aesKey = deriveAESKey(serverDHKeys.getPrivate(), clientPublicKey);
+            System.out.println("Derived shared AES session key.");
+
+
+            // sign server's public key and send it to the client
+            Signature signer = Signature.getInstance("SHA256withRSA/PSS", "BC");
+            signer.initSign(server.getPrivateKey()); // use the server's private RSA key
+            signer.update(serverPublicKey.getEncoded());
+            byte[] signature = signer.sign();
+
+            output.writeObject(serverPublicKey); // send server's public dh key
+            output.writeObject(signature);      // send the signature
+            output.flush();
+
+            // encrypt a confirmation message using the session key
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+            byte[] confirmationMessage = cipher.doFinal("OK".getBytes());
+            output.writeObject(confirmationMessage); // send confirmation to client
+            output.flush();
+            System.out.println("Handshake complete");
+
+
+
+
+
+
+
+
+
+
             // Loop to read messages
             User authUser = null;
 
             Message msg = null;
 
-            //diffiehellman bullshit
-            
+            // diffie hellman bullshit
+
             do {
                 // read and print message
                 msg = (Message) input.readObject();
