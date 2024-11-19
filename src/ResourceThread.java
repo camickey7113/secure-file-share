@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.security.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -17,6 +18,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.crypto.util.PublicKeyFactory;
+
 
 public class ResourceThread extends Thread {
     private ResourceServer server;
@@ -46,12 +49,17 @@ public class ResourceThread extends Thread {
      */
     public void run() {
         try {
+
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
             final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
             final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+
+
+            //diffiehellman bullshit
+
 
             // Loop to read messages
             Message msg = null;
@@ -85,10 +93,18 @@ public class ResourceThread extends Thread {
     private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
+        byte[][] encryptedStuff;
+        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
+        // check signature before proceeding
+        if (!verify(t, msg.getSignature())) {
+            System.out.println("Signature not verified.");
+            // if signature isn't verified, message is returned with null signature
+            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null, stuff));
+            output.writeObject(encryptedStuff);
+            return;
+        }
 
         try {
-            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
-            byte[][] encryptedStuff;
             switch (msg.getCommand()) {
                 case "list":
                     ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
@@ -97,7 +113,6 @@ public class ResourceThread extends Thread {
                     System.out.println("Sending back list message...");
                     encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                     output.writeObject(encryptedStuff);
-
                     // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
                     // if(directory.isDirectory()) {
                     //     String[] files = directory.list();
@@ -167,6 +182,7 @@ public class ResourceThread extends Thread {
                     File directory = new File(directoryPath);
                     boolean directoryCreated = directory.mkdir();
                     stuff.add(true);
+
                     encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                     output.writeObject(encryptedStuff);
                     break;
@@ -198,6 +214,7 @@ public class ResourceThread extends Thread {
                         boolean directoryCreated3 = directory3.mkdir();
                         stuff.add(directoryCreated3); 
                     }
+
                     encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                     output.writeObject(encryptedStuff);
                     break;
@@ -208,11 +225,32 @@ public class ResourceThread extends Thread {
                     output.writeObject(encryptedStuff);
                     break;
             }
+            output.writeObject(new Message(msg.getCommand(), null, msg.getSignature(), stuff));
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
 
-        
+    boolean verify(Token t, byte[] signature) {
+        try {
+            Signature verifier = Signature.getInstance("SHA256withRSA/PSS", "BC");
+            verifier.initVerify(server.getAuthKey()); // replace with AS public key
+            verifier.update(hashToken(t));
+            return verifier.verify(signature);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    public byte[] hashToken(Token t) {
+        try {
+            MessageDigest mdig = MessageDigest.getInstance("SHA-256");
+            return mdig.digest(t.toString().getBytes());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
     //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------

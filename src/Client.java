@@ -1,3 +1,7 @@
+import java.net.Socket; // Used to connect to the server
+import java.security.PublicKey;
+import java.io.ObjectInputStream; // Used to read objects sent from the server
+import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.io.BufferedReader; // Needed to read from the console
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -144,8 +148,9 @@ public class Client {
         return true;
     }
 
-    public static User createUser(String username, String password, String group){
-        User newUser = new User(username, password, group);
+    public static User createUser(String username, String password, String group, String salt){
+        
+        User newUser = new User(username, password, group, salt);
         
         return newUser;
       
@@ -179,8 +184,14 @@ public class Client {
         return true;
     }
 
+    public static User createUser(String username, String password, String group){
+        User newUser = new User(username, password, group, null);
+        return newUser;
+    }
+
     // returns a Token that corresponds to the current user or null if the current
     // user was removed from the system after they already logged in
+    @Deprecated
     public static Token verifyUser() {
         Token t = null;
         // construct list with user
@@ -214,7 +225,7 @@ public class Client {
     // 0 : invalid command
     // 1 : empty/logout command
     // 2 : valid command
-    public static int handleCommand(String line, Token token) {
+    public static int handleCommand(String line, Token token, byte[] signature) {
         // break up command string by spaces
         String[] split = line.split("\\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
@@ -249,13 +260,16 @@ public class Client {
                         String username = split[1];
                         String password = split[2];
                         String group = split[3];
-                        stuff.add(createUser(username, password, group));
+
+                        String salt = null; //ungenerated salt
+                        stuff.add(createUser(username, password, group, salt));
                         
-                        //we need two calls bc normally we'd do the encryption with two different session keys
+                        //we need two calls for two different keys
                         encryptedStuff = symmEncrypt(AESkey, new Message("create", null, stuff));
                         authOutput.writeObject(encryptedStuff);
                         encryptedStuff = symmEncrypt(AESkey, new Message("create", null, stuff));
                         resourceOutput.writeObject(encryptedStuff);
+
                         break;
 
                     case "delete":
@@ -331,7 +345,7 @@ public class Client {
                 
                 switch (split[0]) {
                     case "list":
-                        encryptedStuff = symmEncrypt(AESkey, new Message("list", t, null));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("list", t, signature, null));
                         resourceOutput.writeObject(encryptedStuff);
                         break;
 
@@ -350,15 +364,14 @@ public class Client {
                             }
                         }
                         stuff.add(fileData);
-                        //new encryption bullshit
-                        encryptedStuff = symmEncrypt(AESkey, new Message("upload", t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("upload", t, signature, stuff));
                         resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "download":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(AESkey, new Message("download", t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("download", t, signature, stuff));
                         resourceOutput.writeObject(encryptedStuff);
                         break;
 
@@ -368,7 +381,7 @@ public class Client {
                     case "delete":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(AESkey, new Message("delete", t, stuff));
+                        encryptedStuff = symmEncrypt(AESkey, new Message("delete", t, signature, stuff));
                         resourceOutput.writeObject(encryptedStuff);
                         break;
                 }
@@ -459,6 +472,11 @@ public class Client {
             } else {
                 byte[][] nonsense = (byte[][])resourceInput.readObject();
                 Message resp = symmDecrypt(AESkey, nonsense);
+                // if signature is null, signature was rejected
+                if (resp.getSignature() == null) {
+                    System.out.println("Something's fishy...");
+                    return false;
+                }
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
@@ -517,9 +535,8 @@ public class Client {
     }
 
     // Prompts the user for a username and password
-    // Upon successful login, returns a User object that may or may not exist in the
-    // AS user list
-    public static User login() {
+    // Upon successful login, returns a Message object containing a user's details
+    public static Message login() {
         // construct list with user
         ArrayList<Object> list = new ArrayList<Object>();
         list.add(readCredentials());
@@ -536,7 +553,8 @@ public class Client {
                 return null;
             }
             System.out.println("Token Generated");
-            return (User) resp.getStuff().get(0);
+            currentUser = (User) resp.getStuff().get(0);
+            return resp;
             
             // ^wat dis doins
         } catch (Exception e) {
@@ -578,26 +596,20 @@ public class Client {
         } else {
             System.out.println("Error connecting to servers");
         }
-        // login user
-        while (currentUser == null) {
-            try {
-                currentUser = login();
-            } catch (Exception e) {
-                System.out.println("Login unsuccessful. Please try again.");
-            }
-        }
-
-        // authenticate user
-        Token t = verifyUser();
-        // if unable to verify, user will need to re-login
-        if (t == null) {
-            System.out.println("Permission has been revoked. Please contact admin.");
-            logout();
-        } else {
-            System.out.println("Successfully verified\nCurrent user: " + currentUser.getUsername());
-        }
         while (true) {
-            
+            // login user
+            Message secret = null;
+            Token t = null;
+            byte[] s = null;
+            while (currentUser == null) {
+                try {
+                    secret = login();
+                    t = secret.getToken();
+                    s = secret.getSignature();
+                } catch (Exception e) {
+                    System.out.println("Login unsuccessful. Please try again.");
+                }
+            }            
             // loop to accept commands
             Message msg;
             try {
@@ -605,7 +617,7 @@ public class Client {
                     // input command
                     String inputs = readSomeText();
                     // System.out.println("Awaiting command...");
-                    switch (handleCommand(inputs, t)) {
+                    switch (handleCommand(inputs, t, s)) {
                         case 0:
                             throw new IllegalArgumentException("Invalid command.");
                         case 1:
@@ -656,7 +668,7 @@ public class Client {
             System.out.print("Password: ");
             String password = in.readLine();
 
-            return new User(username, password, null);
+            return new User(username, password, null, null);
         } catch (Exception e) {
             // Uh oh...
             return null;
