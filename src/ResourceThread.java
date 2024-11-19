@@ -96,7 +96,8 @@ public class ResourceThread extends Thread {
         byte[][] encryptedStuff;
         SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         // check signature before proceeding
-        if (!verify(t, msg.getSignature())) {
+        boolean verified = verify(t, msg.getSignature());
+        if (!verified) {
             System.out.println("Signature not verified.");
             // if signature isn't verified, message is returned with null signature
             encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null, stuff));
@@ -105,79 +106,88 @@ public class ResourceThread extends Thread {
         }
 
         try {
-            switch (msg.getCommand()) {
-                case "list":
-                    ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
-                    Process process = pb.start();
-                    stuff.add(new String(process.getInputStream().readAllBytes()));
-                    System.out.println("Sending back list message...");
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
-                    // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
-                    // if(directory.isDirectory()) {
-                    //     String[] files = directory.list();
-                    //     stuff.add(files);
-                    // }
-                    // System.out.println("Sending back list message...");
-                    // output.writeObject(new Message(msg.getCommand(), null, stuff));
-                    break;
-
-                case "upload":
-                    try {
-                        File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
-                        file.createNewFile();
-
-                        FileOutputStream fout = new FileOutputStream(file);
-                        fout.write((byte[])msg.getStuff().get(1));
-
-                        stuff.add(true);
+            if(verified){
+                switch (msg.getCommand()) {
+                    case "list":
+                        ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
+                        Process process = pb.start();
+                        stuff.add(new String(process.getInputStream().readAllBytes()));
+                        System.out.println("Sending back list message...");
                         encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                         output.writeObject(encryptedStuff);
-                    } catch(Exception e) {
-                        stuff.add(false);
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
-                    }
-                    break;
-
-                case "download":
-                    try {
+                        // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
+                        // if(directory.isDirectory()) {
+                        //     String[] files = directory.list();
+                        //     stuff.add(files);
+                        // }
+                        // System.out.println("Sending back list message...");
+                        // output.writeObject(new Message(msg.getCommand(), null, stuff));
+                        break;
+    
+                    case "upload":
+                        try {
+                            File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                            file.createNewFile();
+    
+                            FileOutputStream fout = new FileOutputStream(file);
+                            fout.write((byte[])msg.getStuff().get(1));
+    
+                            stuff.add(true);
+                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                            output.writeObject(encryptedStuff);
+                        } catch(Exception e) {
+                            stuff.add(false);
+                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                            output.writeObject(encryptedStuff);
+                        }
+                        break;
+    
+                    case "download":
+                        try {
+                            // Search user's group folder for file
+                            File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                            byte[] fileData = new byte[(int) file.length()];
+                            // Use FileInputStream to read the file into the byte array
+                            try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                                int bytesRead = fileInputStream.read(fileData);
+                                if (bytesRead != fileData.length) {
+                                    throw new IOException("Could not read the entire file into the byte array.");
+                                }
+                            }
+                            stuff.add(true);
+                            stuff.add(msg.getStuff().get(0));
+                            stuff.add(fileData);
+                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                            output.writeObject(encryptedStuff);
+                        } catch (Exception e){
+                            stuff.add(false);
+                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
+                            output.writeObject(encryptedStuff);
+                        }
+                        break;
+    
+                    case "delete":
                         // Search user's group folder for file
                         File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
-                        byte[] fileData = new byte[(int) file.length()];
-                        // Use FileInputStream to read the file into the byte array
-                        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-                            int bytesRead = fileInputStream.read(fileData);
-                            if (bytesRead != fileData.length) {
-                                throw new IOException("Could not read the entire file into the byte array.");
-                            }
+                        if(file.isFile()) {
+                            file.delete();
+                            stuff.add(true);
+                        } else {
+                            stuff.add(false);
                         }
-                        stuff.add(true);
-                        stuff.add(msg.getStuff().get(0));
-                        stuff.add(fileData);
                         encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                         output.writeObject(encryptedStuff);
-                    } catch (Exception e){
+                        break;
+    
+                    default:
                         stuff.add(false);
                         encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                         output.writeObject(encryptedStuff);
-                    }
-                    break;
-
-                case "delete":
-                    // Search user's group folder for file
-                    File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
-                    if(file.isFile()) {
-                        file.delete();
-                        stuff.add(true);
-                    } else {
-                        stuff.add(false);
-                    }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
-                    break;
-
-                case "collect":
+                        break;
+                }
+            } else {
+                switch(msg.getCommand()){ //if we aren't receiving a verified signature, check if the command is a root command
+                    case "collect":
                     String directoryPath = "group" + File.separator + msg.getStuff().get(0);
                     File directory = new File(directoryPath);
                     boolean directoryCreated = directory.mkdir();
@@ -218,13 +228,14 @@ public class ResourceThread extends Thread {
                     encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                     output.writeObject(encryptedStuff);
                     break;
-
-                case "null":
+                default:
                     stuff.add(false);
                     encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                     output.writeObject(encryptedStuff);
                     break;
+                }
             }
+
             output.writeObject(new Message(msg.getCommand(), null, msg.getSignature(), stuff));
         } catch (Exception e) {
             System.out.println(e.getMessage());
