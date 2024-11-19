@@ -1,7 +1,10 @@
 import java.net.Socket; // Used to connect to the server
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.io.ObjectInputStream; // Used to read objects sent from the server
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream; // Used to write objects to the server
+import java.math.BigInteger;
 import java.io.BufferedReader; // Needed to read from the console
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,7 +17,10 @@ import java.io.ObjectInputStream; // Used to read objects sent from the server
 import java.io.ObjectOutputStream; // Used to write objects to the server
 import java.net.Socket; // Used to connect to the server
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.ArrayList;
@@ -23,8 +29,10 @@ import java.util.Scanner;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -227,7 +235,7 @@ public class Client {
     // 2 : valid command
     public static int handleCommand(String line, Token token, byte[] signature) {
         // break up command string by spaces
-        String[] split = line.split("\\s+");
+        String[] split = line.split("\s+");
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = token;
         Message msg = null;
@@ -395,6 +403,7 @@ public class Client {
 
     
     public static boolean handleResponse() {
+
         try {
             SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
             Message authResp;
@@ -449,7 +458,7 @@ public class Client {
                     case "list":
                         if ((boolean) authResp.getStuff().get(0)) {
                             @SuppressWarnings("unchecked")
-							ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
+                            ArrayList<String> members = (ArrayList<String>) authResp.getStuff().get(1);
                             for(int i = 0; i < members.size(); i++){
                                 System.out.println(members.get(i));
                             }
@@ -589,6 +598,26 @@ public class Client {
         System.exit(0);
     }
 
+    public static void initiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+        int bitLength = 2048; // 1024, 2048
+        SecureRandom rnd = new SecureRandom();
+        BigInteger p = BigInteger.probablePrime(bitLength, rnd); 
+        BigInteger g = BigInteger.probablePrime(bitLength, rnd); 
+        // specify parameters to use for the algorithm
+        DHParameterSpec dhParams = new DHParameterSpec(p, g);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
+        keyGen.initialize(dhParams, new SecureRandom());
+        KeyPair clientPair = keyGen.generateKeyPair();
+        KeyAgreement clientAgree = KeyAgreement.getInstance("DH", "BC");
+
+        output.writeObject(clientPair.getPublic());
+        output.writeObject(p);
+        output.writeObject(g);
+
+
+
+    }
+
     public static void main(String[] args) {
         
         // connect to AS and RS
@@ -597,6 +626,9 @@ public class Client {
         } else {
             System.out.println("Error connecting to servers");
         }
+        initiateHandshake(resourceOutput, resourceInput);
+        initiateHandshake(authOutput, authInput);
+
         while (true) {
             // login user
             Message secret = null;

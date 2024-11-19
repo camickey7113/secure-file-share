@@ -1,14 +1,12 @@
 
 //package org.mindrot.jbcrypt;
 import java.lang.Thread;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.Signature;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -18,7 +16,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.mindrot.jbcrypt.BCrypt;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -392,6 +392,24 @@ public class AuthThread extends Thread {
         }
     }
 
+    public static void initiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+        Key clientPublic = (Key) input.readObject();
+        BigInteger p = (BigInteger) input.readObject();
+        BigInteger g = (BigInteger) input.readObject();
+
+        DHParameterSpec dhParams = new DHParameterSpec(p, g);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
+        keyGen.initialize(dhParams, new SecureRandom());
+        KeyPair servPair = keyGen.generateKeyPair();
+        KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
+
+        servAgree.init(clientPublic);
+        servAgree.doPhase(clientPublic, true);
+        byte[] secret = servAgree.generateSecret();
+
+        
+    }
+
     public void run() {
         try {
             // Print incoming message
@@ -407,6 +425,8 @@ public class AuthThread extends Thread {
 
             Message msg = null;
 
+
+            initiateHandshake(output, input);
 
             SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");//set up hardcode key for now
 
