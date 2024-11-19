@@ -12,4 +12,4 @@ java -cp .:/Users/camickey7113/Documents/school/7semester/1653/cs1653-project-co
 
 javac -cp .:/Users/camickey7113/Documents/school/7semester/1653/cs1653-project-coles-army/lib/bcprov-jdk18on-1.78.1.jar:../lib/jbcrypt-0.4.jar *.java
 
-java -cp "../lib/bcprov-jdk18on-1.78.1.jar;." Client 
+java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client

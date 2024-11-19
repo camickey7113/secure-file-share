@@ -96,13 +96,14 @@ public class ResourceThread extends Thread {
         byte[][] encryptedStuff;
         SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         // check signature before proceeding
-        boolean verified = verify(t, msg.getSignature());
+        boolean verified;
+        if(t == null) {
+            verified = false;
+        } else {
+            verified = verify(t, msg.getSignature());
+        }
         if (!verified) {
             System.out.println("Signature not verified.");
-            // if signature isn't verified, message is returned with null signature
-            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null, stuff));
-            output.writeObject(encryptedStuff);
-            return;
         }
 
         try {
@@ -146,6 +147,7 @@ public class ResourceThread extends Thread {
                         try {
                             // Search user's group folder for file
                             File file = new File("group" + File.separator + t.getGroup() + File.separator + msg.getStuff().get(0));
+                            System.out.println(file.getAbsolutePath());
                             byte[] fileData = new byte[(int) file.length()];
                             // Use FileInputStream to read the file into the byte array
                             try (FileInputStream fileInputStream = new FileInputStream(file)) {
@@ -217,6 +219,9 @@ public class ResourceThread extends Thread {
                     String newGroup = ((User)msg.getStuff().get(0)).getGroup();
                     // check if group folder exists
                     String directoryPath3 = "group" + File.separator + newGroup;
+
+                    System.out.println(directoryPath3);
+
                     File directory3 = new File(directoryPath3);
                     // if it exists
                     if(!directory3.isDirectory()) {
@@ -235,8 +240,8 @@ public class ResourceThread extends Thread {
                     break;
                 }
             }
-
-            output.writeObject(new Message(msg.getCommand(), null, msg.getSignature(), stuff));
+            // encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, msg.getSignature(), stuff));
+            // output.writeObject(encryptedStuff);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

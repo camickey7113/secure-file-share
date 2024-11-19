@@ -472,11 +472,12 @@ public class Client {
             } else {
                 byte[][] nonsense = (byte[][])resourceInput.readObject();
                 Message resp = symmDecrypt(AESkey, nonsense);
-                // if signature is null, signature was rejected
-                if (resp.getSignature() == null) {
-                    System.out.println("Something's fishy...");
-                    return false;
-                }
+                System.out.println(resp.getCommand());
+                // // if signature is null, signature was rejected
+                // if (resp.getSignature() == null) {
+                //     System.out.println("Something's fishy...");
+                //     return false;
+                // }
                 switch (resp.getCommand()) {
                     case "list":
                         System.out.println(resp.getStuff().get(0));
