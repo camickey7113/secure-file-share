@@ -1,6 +1,7 @@
 import java.lang.Thread; // We will extend Java's base Thread class
 import java.net.Socket;
 import java.security.*;
+import java.security.spec.InvalidParameterSpecException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -14,6 +15,7 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 
@@ -35,7 +37,7 @@ public class ResourceThread extends Thread {
     }
 
     // dh stuff
-    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
         AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
         paramGen.init(2048);
         AlgorithmParameters params = paramGen.generateParameters();

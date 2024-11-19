@@ -76,7 +76,7 @@ public class Client {
 
     // dh stuff 
 
-    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    private static KeyPair generateDHKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
         AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
         paramGen.init(2048);
         // initilize diffie hellman size 2048

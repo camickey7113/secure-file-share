@@ -165,7 +165,7 @@ public class AuthServer {
     }
 
     public static void main(String[] args) {
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        //Security.addProvider(new BouncyCastleProvider());
 
             if(!loadServerKeys("authpublickey.txt", "authprivatekey.txt")) {
                 try {
