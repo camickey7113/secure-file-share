@@ -30,7 +30,10 @@ public class AuthThread extends Thread {
     private final Socket socket;
     //public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
-    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    static {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
+    
 
 
 
@@ -42,7 +45,6 @@ public class AuthThread extends Thread {
     //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
     //Symmetric Encryption
     public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        // java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -58,7 +60,6 @@ public class AuthThread extends Thread {
 
     //Symmetric Decryption
     public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        // java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -111,12 +112,11 @@ public class AuthThread extends Thread {
 
     }
 
-    public boolean handleCommand(Message msg, ObjectOutputStream output) {
+    public boolean handleCommand(Message msg, ObjectOutputStream output, SecretKeySpec AESkey) {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
 
-        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         byte[][] encryptedStuff;
 
         try {
@@ -414,7 +414,7 @@ public class AuthThread extends Thread {
         MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
         byte[] hashedsecret = Sha256.digest(secret);
         hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
-        System.out.println(new String(hashedsecret)); //for debugging
+        // System.out.println(new String(hashedsecret)); //for debugging
         SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
         
         //confirm our new AES256 key with the client and send our half of the shared secret with signature
@@ -431,7 +431,6 @@ public class AuthThread extends Thread {
     public void run() {
         try {
             // Print incoming message
-            Security.addProvider(new BouncyCastleProvider());
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
@@ -444,19 +443,16 @@ public class AuthThread extends Thread {
             Message msg = null;
 
 
-            serverInitiateHandshake(output, input);
+            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
 
-            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");//set up hardcode key for now
 
-            //diffie hellman bullshit
-            // auth thread generate DH key pairs
 
             do {
                 // read and print message
                 msg = symmDecrypt(AESkey, (byte[][])input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
-                handleCommand(msg, output);
+                handleCommand(msg, output, AESkey);
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 
