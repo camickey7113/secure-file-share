@@ -1,14 +1,12 @@
 
 //package org.mindrot.jbcrypt;
 import java.lang.Thread;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.Signature;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
@@ -18,9 +16,12 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.mindrot.jbcrypt.BCrypt;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.print.attribute.HashAttributeSet;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -29,7 +30,10 @@ public class AuthThread extends Thread {
     private final Socket socket;
     //public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
-    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    static {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
+    
 
 
 
@@ -41,7 +45,6 @@ public class AuthThread extends Thread {
     //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
     //Symmetric Encryption
     public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -57,7 +60,6 @@ public class AuthThread extends Thread {
 
     //Symmetric Decryption
     public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -110,12 +112,11 @@ public class AuthThread extends Thread {
 
     }
 
-    public boolean handleCommand(Message msg, ObjectOutputStream output) {
+    public boolean handleCommand(Message msg, ObjectOutputStream output, SecretKeySpec AESkey) {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
 
-        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         byte[][] encryptedStuff;
 
         try {
@@ -351,7 +352,7 @@ public class AuthThread extends Thread {
         return false;
     }
 
-    public byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
+    public static byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
         Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
         signature.initSign(privateKey);
 
@@ -392,10 +393,44 @@ public class AuthThread extends Thread {
         }
     }
 
+    public SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+        //retreive client half of handshake
+        Message clienthalf = (Message) input.readObject();
+        Key clientPublic = (Key) clienthalf.getStuff().get(0);
+        BigInteger p = (BigInteger) clienthalf.getStuff().get(1);
+        BigInteger g = (BigInteger) clienthalf.getStuff().get(2);
+
+        //generate servers half of the secret
+        DHParameterSpec dhParams = new DHParameterSpec(p, g);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
+        keyGen.initialize(dhParams, new SecureRandom());
+        KeyPair servPair = keyGen.generateKeyPair();
+        KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
+
+        //generate the shared secret
+        servAgree.init(servPair.getPrivate());
+        servAgree.doPhase(clientPublic, true);
+        byte[] secret = servAgree.generateSecret();
+        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
+        byte[] hashedsecret = Sha256.digest(secret);
+        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
+        // System.out.println(new String(hashedsecret)); //for debugging
+        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
+        
+        //confirm our new AES256 key with the client and send our half of the shared secret with signature
+        String KeyPhrase = "Bello!";
+        byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
+        output.writeObject(encryptedKeyPhrase);
+        output.writeObject(servPair.getPublic());
+        output.writeObject(sign(serialize(servPair.getPublic()), server.getPrivateKey()));
+
+
+        return sharedSessionKey;
+    }
+
     public void run() {
         try {
             // Print incoming message
-            Security.addProvider(new BouncyCastleProvider());
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
@@ -408,17 +443,16 @@ public class AuthThread extends Thread {
             Message msg = null;
 
 
-            SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");//set up hardcode key for now
+            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
 
-            //diffie hellman bullshit
-            // auth thread generate DH key pairs
+
 
             do {
                 // read and print message
                 msg = symmDecrypt(AESkey, (byte[][])input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
-                handleCommand(msg, output);
+                handleCommand(msg, output, AESkey);
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 

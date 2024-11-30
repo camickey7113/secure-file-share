@@ -1,4 +1,5 @@
 import java.lang.Thread; // We will extend Java's base Thread class
+import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
@@ -13,7 +14,9 @@ import java.io.ObjectOutputStream; // For writing Java objects to the wire
 import java.util.*;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -27,8 +30,11 @@ public class ResourceThread extends Thread {
     private Message msg;
 
 
-    public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
+    static {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
 
     /**
      * Constructor that sets up the socket we'll chat over
@@ -42,6 +48,51 @@ public class ResourceThread extends Thread {
         this.socket = socket;
     }
 
+    
+
+    public static byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
+        signature.initSign(privateKey);
+
+        signature.update(hashedToken);
+
+        return signature.sign();
+    }
+
+    public SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+        //retreive client half of handshake
+        Message clienthalf = (Message) input.readObject();
+        Key clientPublic = (Key) clienthalf.getStuff().get(0);
+        BigInteger p = (BigInteger) clienthalf.getStuff().get(1);
+        BigInteger g = (BigInteger) clienthalf.getStuff().get(2);
+
+        //generate servers half of the secret
+        DHParameterSpec dhParams = new DHParameterSpec(p, g);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
+        keyGen.initialize(dhParams, new SecureRandom());
+        KeyPair servPair = keyGen.generateKeyPair();
+        KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
+
+        //generate the shared secret
+        servAgree.init(servPair.getPrivate());
+        servAgree.doPhase(clientPublic, true);
+        byte[] secret = servAgree.generateSecret();
+        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
+        byte[] hashedsecret = Sha256.digest(secret);
+        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
+        // System.out.println(new String(hashedsecret)); 
+        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
+        
+        //confirm our new AES256 key with the client and send our half of the shared secret with signature
+        String KeyPhrase = "Bello!";
+        byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
+        output.writeObject(encryptedKeyPhrase);
+        output.writeObject(servPair.getPublic());
+        output.writeObject(sign(serialize(servPair.getPublic()), server.getPrivateKey()));
+
+
+        return sharedSessionKey;
+    }
     /**
      * run() is basically the main method of a thread. This thread
      * simply reads Message objects off of the socket.
@@ -59,7 +110,7 @@ public class ResourceThread extends Thread {
 
 
             //diffiehellman bullshit
-
+            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
 
             // Loop to read messages
             Message msg = null;
@@ -67,7 +118,6 @@ public class ResourceThread extends Thread {
             do {
                 // new decryption
                 byte[][] nonsense = (byte[][]) input.readObject();
-                SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
                 msg = symmDecrypt(AESkey, nonsense);
 
 
@@ -76,7 +126,7 @@ public class ResourceThread extends Thread {
                 // "] " + msg.getCommand());
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
-                handleClientRequest(msg, output);
+                handleClientRequest(msg, output, AESkey);
 
             } while (!msg.getCommand().equals("exit"));
             
@@ -90,11 +140,10 @@ public class ResourceThread extends Thread {
     }
 
 
-    private void handleClientRequest(Message msg, ObjectOutputStream output) throws IOException {
+    private void handleClientRequest(Message msg, ObjectOutputStream output, SecretKeySpec AESkey) throws IOException {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         byte[][] encryptedStuff;
-        SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         // check signature before proceeding
         boolean verified;
         if(t == null) {
