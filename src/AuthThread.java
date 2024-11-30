@@ -352,7 +352,7 @@ public class AuthThread extends Thread {
         return false;
     }
 
-    public byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
+    public static byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
         Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
         signature.initSign(privateKey);
 
@@ -393,7 +393,7 @@ public class AuthThread extends Thread {
         }
     }
 
-    public static SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+    public SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
         //retreive client half of handshake
         Message clienthalf = (Message) input.readObject();
         Key clientPublic = (Key) clienthalf.getStuff().get(0);
@@ -413,14 +413,17 @@ public class AuthThread extends Thread {
         byte[] secret = servAgree.generateSecret();
         MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
         byte[] hashedsecret = Sha256.digest(secret);
+        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
         System.out.println(new String(hashedsecret)); //for debugging
         SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
         
-        //confirm our new AES256 key with the client and send our half of the shared secret
+        //confirm our new AES256 key with the client and send our half of the shared secret with signature
         String KeyPhrase = "Bello!";
         byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
         output.writeObject(encryptedKeyPhrase);
         output.writeObject(servPair.getPublic());
+        output.writeObject(sign(serialize(servPair.getPublic()), server.getPrivateKey()));
+
 
         return sharedSessionKey;
     }

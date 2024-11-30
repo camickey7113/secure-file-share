@@ -1,6 +1,7 @@
 import java.net.Socket; // Used to connect to the server
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Signature;
 import java.io.ObjectInputStream; // Used to read objects sent from the server
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream; // Used to write objects to the server
@@ -25,6 +26,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -600,7 +602,7 @@ public class Client {
         System.exit(0);
     }
 
-    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input, PublicKey serverkey) throws Exception{
         int bitLength = 2048; // 1024, 2048
         SecureRandom rnd = new SecureRandom();
         BigInteger p = BigInteger.probablePrime(bitLength, rnd); 
@@ -625,6 +627,7 @@ public class Client {
         //receive server's half of shared secret, generate key
         byte[][] encryptedKeyPhrase = (byte[][]) input.readObject();
         Key servPublic = (Key)input.readObject();
+        byte[] signature = (byte[]) input.readObject();
         clientAgree.doPhase(servPublic, true);
         byte[] secret = clientAgree.generateSecret();
         MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
@@ -641,9 +644,28 @@ public class Client {
             return null;
         }
 
+        //testing the server's signature
+        if(!verifySig(signature, serialize(servPublic), serverkey)){
+            System.out.println("Server untrustworthy, ending handshake.");
+            return null;
+        }
+
         return sharedSessionKey;
     }
 
+    static boolean verifySig (byte[] signature, byte[] signed, PublicKey pubkey){
+        try {
+            Signature verifier = Signature.getInstance("SHA256withRSA/PSS", BouncyCastleProvider.PROVIDER_NAME);
+            verifier.initVerify(pubkey); // replace with AS public key
+            verifier.update(signed);
+            return verifier.verify(signature);
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+            return false;
+        }
+    }
+    
     public static void main(String[] args) {
         
         // connect to AS and RS
@@ -653,11 +675,21 @@ public class Client {
             System.out.println("Error connecting to servers");
         }
         //load in auth and desired RS public keys from key files
-
-
+        PublicKey authPublicKey = null;
+        PublicKey resPublicKey = null;
+        try {
+            authPublicKey = KeyIO.readPublicKeyFromFile("authpublickey.txt");
+            resPublicKey = KeyIO.readPublicKeyFromFile("respublickey.txt");
+        } catch (IOException ex) {
+            System.out.println("Failed to read in server public keys");
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+            System.exit(1);
+        }
+        
         //handshakes...
         try{
-            SecretKeySpec sessionkey = clientInitiateHandshake(authOutput, authInput);
+            SecretKeySpec sessionkey = clientInitiateHandshake(authOutput, authInput, authPublicKey);
             if (sessionkey == null) {
                 System.out.println("Failed to initiate handshake, exiting");
                 System.exit(1);

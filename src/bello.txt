@@ -28,3 +28,4 @@ javac -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client.jav
 
 >>>>>>> 53c945d649a66bde6e3a1dacba1cd98c95936a14
 java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client
+
