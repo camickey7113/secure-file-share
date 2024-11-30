@@ -2,3 +2,5 @@
 !/src/group/.empty
 /src/group/*.txt
 /src/group/*
+users.txt
+groups.txt
