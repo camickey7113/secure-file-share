@@ -21,6 +21,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.print.attribute.HashAttributeSet;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -41,7 +42,7 @@ public class AuthThread extends Thread {
     //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
     //Symmetric Encryption
     public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        // java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -57,7 +58,7 @@ public class AuthThread extends Thread {
 
     //Symmetric Decryption
     public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        // java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -392,22 +393,36 @@ public class AuthThread extends Thread {
         }
     }
 
-    public static void initiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
-        Key clientPublic = (Key) input.readObject();
-        BigInteger p = (BigInteger) input.readObject();
-        BigInteger g = (BigInteger) input.readObject();
+    public static SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+        //retreive client half of handshake
+        Message clienthalf = (Message) input.readObject();
+        Key clientPublic = (Key) clienthalf.getStuff().get(0);
+        BigInteger p = (BigInteger) clienthalf.getStuff().get(1);
+        BigInteger g = (BigInteger) clienthalf.getStuff().get(2);
 
+        //generate servers half of the secret
         DHParameterSpec dhParams = new DHParameterSpec(p, g);
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
         keyGen.initialize(dhParams, new SecureRandom());
         KeyPair servPair = keyGen.generateKeyPair();
         KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
 
-        servAgree.init(clientPublic);
+        //generate the shared secret
+        servAgree.init(servPair.getPrivate());
         servAgree.doPhase(clientPublic, true);
         byte[] secret = servAgree.generateSecret();
-
+        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
+        byte[] hashedsecret = Sha256.digest(secret);
+        System.out.println(new String(hashedsecret)); //for debugging
+        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
         
+        //confirm our new AES256 key with the client and send our half of the shared secret
+        String KeyPhrase = "Bello!";
+        byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
+        output.writeObject(encryptedKeyPhrase);
+        output.writeObject(servPair.getPublic());
+
+        return sharedSessionKey;
     }
 
     public void run() {
@@ -426,7 +441,7 @@ public class AuthThread extends Thread {
             Message msg = null;
 
 
-            initiateHandshake(output, input);
+            serverInitiateHandshake(output, input);
 
             SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");//set up hardcode key for now
 

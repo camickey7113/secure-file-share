@@ -19,8 +19,10 @@ import java.net.Socket; // Used to connect to the server
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.ArrayList;
@@ -62,11 +64,12 @@ public class Client {
 
     public static Scanner scanner = new Scanner(System.in);
 
-    
+    static {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
 
     //Symmetric Encryption
-    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){  
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -82,7 +85,6 @@ public class Client {
 
     //Symmetric Decryption
     public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         Cipher aesc;
         try {
             aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
@@ -598,24 +600,48 @@ public class Client {
         System.exit(0);
     }
 
-    public static void initiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
+    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
         int bitLength = 2048; // 1024, 2048
         SecureRandom rnd = new SecureRandom();
         BigInteger p = BigInteger.probablePrime(bitLength, rnd); 
         BigInteger g = BigInteger.probablePrime(bitLength, rnd); 
         // specify parameters to use for the algorithm
         DHParameterSpec dhParams = new DHParameterSpec(p, g);
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", BouncyCastleProvider.PROVIDER_NAME);
         keyGen.initialize(dhParams, new SecureRandom());
         KeyPair clientPair = keyGen.generateKeyPair();
-        KeyAgreement clientAgree = KeyAgreement.getInstance("DH", "BC");
+        KeyAgreement clientAgree = KeyAgreement.getInstance("DH", BouncyCastleProvider.PROVIDER_NAME);
+        //initialize key agreement
+        clientAgree.init(clientPair.getPrivate());
 
-        output.writeObject(clientPair.getPublic());
-        output.writeObject(p);
-        output.writeObject(g);
+        //send the client's half of the shared secret
+        ArrayList<Object> stuff = new ArrayList<Object>();
+        stuff.add(clientPair.getPublic());
+        stuff.add(p);
+        stuff.add(g);
+        Message clienthalf = new Message(null, null, stuff);
+        output.writeObject(clienthalf);
 
+        //receive server's half of shared secret, generate key
+        byte[][] encryptedKeyPhrase = (byte[][]) input.readObject();
+        Key servPublic = (Key)input.readObject();
+        clientAgree.doPhase(servPublic, true);
+        byte[] secret = clientAgree.generateSecret();
+        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
+        byte[] hashedsecret = Sha256.digest(secret);
+        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
+        System.out.println(new String(hashedsecret)); //for debugging
+        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
 
+        //test the new session key
+        Message keyPhrase = symmDecrypt(sharedSessionKey, encryptedKeyPhrase);
+        String testDecryption = keyPhrase.getCommand();
+        if(!testDecryption.equals("Bello!")){
+            System.out.println("key generated but not the same as the server's key");
+            return null;
+        }
 
+        return sharedSessionKey;
     }
 
     public static void main(String[] args) {
@@ -626,8 +652,22 @@ public class Client {
         } else {
             System.out.println("Error connecting to servers");
         }
-        initiateHandshake(resourceOutput, resourceInput);
-        initiateHandshake(authOutput, authInput);
+        //load in auth and desired RS public keys from key files
+
+
+        //handshakes...
+        try{
+            SecretKeySpec sessionkey = clientInitiateHandshake(authOutput, authInput);
+            if (sessionkey == null) {
+                System.out.println("Failed to initiate handshake, exiting");
+                System.exit(1);
+            }
+        } catch (Exception e){
+            System.out.println(e.getMessage());
+            System.out.println("Exception in handshake, exiting");
+            System.exit(1);
+        }
+        // clientInitiateHandshake(authOutput, authInput);
 
         while (true) {
             // login user
