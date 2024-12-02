@@ -438,7 +438,7 @@ public class Client {
                         } else {
                             System.out.println("Failed to collect group.");
                         }
-                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
+                        return true;
 
                     case "release":
                         resResp = symmDecrypt(resKey, (byte[][])resourceInput.readObject());
@@ -447,8 +447,7 @@ public class Client {
                         } else {
                             System.out.println("Failed to release group, not empty or doesn't exist.");
                         }
-                        return (boolean)authResp.getStuff().get(0) && (boolean)resResp.getStuff().get(0);
-
+                        return true;
                     case "assign":
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Succesfully assigned user to group");
@@ -745,7 +744,6 @@ public class Client {
                     resourceOutput.flush();
                     authOutput.flush();
                     handleResponse(authSessionKey, resSessionKey);
-                    System.out.flush();
                     resourceOutput.flush();
                     authOutput.flush();
                     // System.out.println("Received response...");
