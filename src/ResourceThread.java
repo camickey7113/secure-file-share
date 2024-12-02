@@ -159,9 +159,19 @@ public class ResourceThread extends Thread {
             if(verified){
                 switch (msg.getCommand()) {
                     case "list":
-                        ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
-                        Process process = pb.start();
-                        stuff.add(new String(process.getInputStream().readAllBytes()));
+                        // ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
+                        // Process process = pb.start();
+                        // stuff.add(new String(process.getInputStream().readAllBytes()));
+
+                        File curDir = new File("./group/" + t.getGroup());
+                        File[] filesList = curDir.listFiles();
+                        for(File f : filesList){
+                            if(f.isFile()){
+                                System.out.println(f.getName());
+                                stuff.add(f.getName());
+                            }
+                        }
+
                         System.out.println("Sending back list message...");
                         encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                         output.writeObject(encryptedStuff);

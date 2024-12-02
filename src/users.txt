@@ -1,1 +1,2 @@
+user1,$2a$10$8yJgwYzSWFzsOJMRWoDSceTNkTHweffjk41AWBnOE.6jkPPEOo3Tu,group1,$2a$10$8yJgwYzSWFzsOJMRWoDSce
 root,root,null,null

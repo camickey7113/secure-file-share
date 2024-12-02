@@ -492,7 +492,10 @@ public class Client {
                 // }
                 switch (resp.getCommand()) {
                     case "list":
-                        System.out.println(resp.getStuff().get(0));
+                        ArrayList<Object> files = resp.getStuff();
+                        for (int i = 0; i < files.size(); i++) {
+                            System.out.println(files.get(i));
+                        }
                         break;
 
                     case "upload":
