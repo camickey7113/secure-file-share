@@ -300,9 +300,9 @@ public class Client {
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(askey, new Message("collect", null, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
                         encryptedStuff = symmEncrypt(reskey, new Message("collect", null, stuff));
+                        resourceOutput.writeObject(encryptedStuff);
+                        encryptedStuff = symmEncrypt(askey, new Message("collect", null, stuff));
                         authOutput.writeObject(encryptedStuff);
                         break;
 
@@ -742,6 +742,8 @@ public class Client {
                     // System.out.println("Received command...");
                     // System.out.println("Awaiting response...");
                     handleResponse(authSessionKey, resSessionKey);
+                    resourceOutput.flush();
+                    authOutput.flush();
                     // System.out.println("Received response...");
                 }
 
