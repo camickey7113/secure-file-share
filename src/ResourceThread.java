@@ -127,6 +127,7 @@ public class ResourceThread extends Thread {
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
                 handleClientRequest(msg, output, AESkey);
+                output.flush();
 
             } while (!msg.getCommand().equals("exit"));
             

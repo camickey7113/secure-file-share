@@ -453,6 +453,7 @@ public class AuthThread extends Thread {
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
                 handleCommand(msg, output, AESkey);
+                output.flush();
 
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 
