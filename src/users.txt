@@ -1,3 +1,1 @@
-user1,$2a$10$8yJgwYzSWFzsOJMRWoDSceTNkTHweffjk41AWBnOE.6jkPPEOo3Tu,group1,$2a$10$8yJgwYzSWFzsOJMRWoDSce
-user2,$2a$10$rItP/onSs94xHVXPKs42yuWPAscp4fqptrRxa2D8/8Nf1vxcbba12,group2,$2a$10$rItP/onSs94xHVXPKs42yu
 root,root,null,null
