@@ -126,6 +126,7 @@ public class ResourceThread extends Thread {
                 // "] " + msg.getCommand());
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
+                output.flush();
                 handleClientRequest(msg, output, AESkey);
                 output.flush();
 
@@ -168,7 +169,7 @@ public class ResourceThread extends Thread {
                         File[] filesList = curDir.listFiles();
                         for(File f : filesList){
                             if(f.isFile()){
-                                System.out.println(f.getName());
+                                // System.out.println(f.getName());
                                 stuff.add(f.getName());
                             }
                         }

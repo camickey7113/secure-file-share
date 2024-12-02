@@ -292,8 +292,8 @@ public class Client {
                         //same as above, need two different calls bc normally two keys
                         encryptedStuff = symmEncrypt(askey, new Message("delete", null, stuff));
                         authOutput.writeObject(encryptedStuff);
-                        encryptedStuff = symmEncrypt(reskey, new Message("delete", null, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = symmEncrypt(reskey, new Message("delete", null, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
                         break;
 
                     case "collect":
@@ -415,6 +415,7 @@ public class Client {
                 authResp = symmDecrypt(asKey, (byte[][])authInput.readObject());
                 switch (authResp.getCommand()) {
                     case "create":
+                        resourceInput.readObject();//useless but needs to be kept
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Created new user.");
                         } else {
@@ -741,7 +742,10 @@ public class Client {
                     }
                     // System.out.println("Received command...");
                     // System.out.println("Awaiting response...");
+                    resourceOutput.flush();
+                    authOutput.flush();
                     handleResponse(authSessionKey, resSessionKey);
+                    System.out.flush();
                     resourceOutput.flush();
                     authOutput.flush();
                     // System.out.println("Received response...");

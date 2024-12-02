@@ -452,6 +452,7 @@ public class AuthThread extends Thread {
                 msg = symmDecrypt(AESkey, (byte[][])input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
+                output.flush();
                 handleCommand(msg, output, AESkey);
                 output.flush();
 
