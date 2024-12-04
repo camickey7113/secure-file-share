@@ -2,7 +2,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.sound.sampled.AudioFormat.Encoding;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 
 public class Message implements java.io.Serializable {    
@@ -21,6 +24,10 @@ public class Message implements java.io.Serializable {
     and a symmetric key shared between the two communicating servers
     */
     private byte[] hmac;
+
+    static {
+        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
     
     // Message Constructors
     public Message(String cmd, Token token, ArrayList<Object> stuff){
@@ -95,34 +102,18 @@ public class Message implements java.io.Serializable {
     // Generates an HMAC using the command, counter, sessionID, and a key
     public byte[] generateHMAC(byte[] sessionID, byte[] key) {
         // generate string from command, counter, and session ID
-        String str = command + ":" + counter + ":" + sessionID;
+        String str = command + ":" + counter + ":" + sessionID; // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
 
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         try {
-            // Initialize HMAC with SHA-256
-            Mac hmac = new HMac(new SHA256Digest());
-            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-            hmac.init(new KeyParameter(keyBytes));
+            Mac mac = Mac.getInstance("HmacSHA256", BouncyCastleProvider.PROVIDER_NAME);
+            SecretKeySpec  mKey = new SecretKeySpec(key, "AES");
+            mac.init(mKey);
+            byte[] messageBytes = str.getBytes(StandardCharsets.UTF_8);
+            mac.update(messageBytes, 0, messageBytes.length);
+            byte[] output = new byte[mac.getMacLength()];
+            mac.doFinal(output);
+            return output;
 
-            // Process the message
-            byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-            hmac.update(messageBytes, 0, messageBytes.length);
-            
-            // Generate the output
-            byte[] output = new byte[hmac.getMacSize()];
-            hmac.doFinal(output, 0);
-
-            // --------------------------------------------------------------
-
-            var hmac2 = new HMac(new Sha256Digest());
-            hmac2.Init(new KeyParameter(Encoding.UTF8.GetBytes(key)));
-            byte[] result = new byte[hmac2.GetMacSize()];
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
-
-            hmac.BlockUpdate(bytes, 0, bytes.Length);
-            hmac.DoFinal(result, 0);
-
-            return result;
         } catch (Exception e) {
             throw new RuntimeException("Error generating HMAC: ", e);
         }

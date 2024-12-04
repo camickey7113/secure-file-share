@@ -28,6 +28,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 public class AuthThread extends Thread {
     private AuthServer server;
     private final Socket socket;
+    private int authSideCounter = 1;
     //public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     static {
@@ -116,9 +117,11 @@ public class AuthThread extends Thread {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
-
+        int clientCounter = msg.getCounter();
         byte[][] encryptedStuff;
-
+        if(checkCounter(clientCounter) == false){
+            return false;
+        }
         try {
             switch (msg.getCommand()) {
                 case "login":
@@ -332,6 +335,14 @@ public class AuthThread extends Thread {
         }
         
         return true;
+    }
+
+    public boolean checkCounter(int sentCount) {
+        if(sentCount == authSideCounter){
+            authSideCounter++;
+            return true;
+        }
+        return false;
     }
 
     @Deprecated

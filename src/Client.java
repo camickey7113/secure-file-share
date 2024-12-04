@@ -62,6 +62,10 @@ public class Client {
     private static User currentUser;
     private static User newUser;
 
+    //Auth and Resource Counters
+    private static int authCounter;
+    private static int resCounter;
+
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public static Scanner scanner = new Scanner(System.in);
@@ -277,10 +281,12 @@ public class Client {
                         stuff.add(createUser(username, password, group, salt));
                         
                         //we need two calls for two different keys
-                        encryptedStuff = symmEncrypt(askey, new Message("create", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
-                        encryptedStuff = symmEncrypt(reskey, new Message("create", null, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("create", null, stuff), askey);
+                        sendResourceMessage(new Message("create", null, stuff), reskey);
+                        // encryptedStuff = symmEncrypt(askey, new Message("create", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = symmEncrypt(reskey, new Message("create", null, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
 
                         break;
 
@@ -664,6 +670,34 @@ public class Client {
             ex.printStackTrace();
             return false;
         }
+    }
+
+    public static void sendAuthMessage(Message m, SecretKey askey) {
+        authCounter++;
+        byte[][] encryptedStuff = symmEncrypt(askey, m);
+        authOutput.writeObject(encryptedStuff);
+    }
+
+    public static void sendResourceMessage(Message m, SecretKey reskey) {
+        resCounter++;
+        byte[][]encryptedStuff = symmEncrypt(reskey, m);
+        resourceOutput.writeObject(encryptedStuff);
+        
+    }
+
+    public static Message receiveAuthMessage(Message m) {
+        // receive output
+
+        // decrypt
+
+        // check counter
+
+        // check HMAC
+        return null;
+    }
+
+    public static Message receiveResourceMessage(Message m) {
+        return null;
     }
     
     public static void main(String[] args) {
