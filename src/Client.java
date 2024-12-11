@@ -74,75 +74,13 @@ public class Client {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
 
-    //Symmetric Encryption
-    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){  
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-            byte[] nonsense = serialize(msg);
-            byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
-            return ret;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } 
-    }
-
-    //Symmetric Decryption
-    public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
-            byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
-            return (Message) deserialize(decrypted);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-        
-    }
-
-    //takes a generic serializable object and then turns it into a byte array for encryption
-    public static byte[] serialize(Object obj){ 
-        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-            try(ObjectOutputStream o = new ObjectOutputStream(b)){
-                o.writeObject(obj);
-            } catch (Exception e){
-                System.out.println("Error during serialization: "+ e.getMessage());
-                return null;
-            }
-            return b.toByteArray();
-        } catch (Exception e){
-            System.out.println("Error during serialization: "+ e.getMessage());
-            return null;
-        }
-    }
-
-    //takes in a byte stream and returns a generic object 
-    public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
-        try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
-            try(ObjectInputStream i = new ObjectInputStream(b)){
-                return i.readObject();
-            } catch (Exception e){
-                System.out.println("Error during deserialization: "+ e.getMessage());
-                return null;
-            }
-        } catch (Exception e){
-            System.out.println("Error during deserialization: "+ e.getMessage());
-            return null;
-        }
-    }
-
-
     public static boolean connectToAuthServer() {
         System.out.print("Enter authentication server name: ");
-        AuthIP = scanner.next();
-        //AuthIP = "localhost";
+        // AuthIP = scanner.next();
+        AuthIP = "localhost";
         System.out.print("Enter authentication server port: ");
-        AuthPortNumber = scanner.nextInt();
-        //AuthPortNumber = 8765;
+        // AuthPortNumber = scanner.nextInt();
+        AuthPortNumber = 8000;
         try {
             authSock = new Socket(AuthIP, AuthPortNumber);
         } catch (Exception e) {
@@ -175,11 +113,11 @@ public class Client {
 
     public static boolean connectToResourceServer() {
         System.out.print("Enter resource server name: ");
-        ResourceIP = scanner.next();
-        //ResourceIP = "localhost";
+        // ResourceIP = scanner.next();
+        ResourceIP = "localhost";
         System.out.print("Enter resource server port: ");
-        ResourcePortNumber = scanner.nextInt();
-        //ResourcePortNumber = 8766;
+        // ResourcePortNumber = scanner.nextInt();
+        ResourcePortNumber = 9000;
         try {
             resourceSock = new Socket(ResourceIP, ResourcePortNumber);
         } catch (Exception e) {
@@ -217,11 +155,12 @@ public class Client {
         SecretKeySpec AESkey = new SecretKeySpec(encodedDemoKey, "AES");
         try {
             // send user to AS for verification
-            byte[][] encryptedStuff = symmEncrypt(AESkey,new Message("verify", null, list));
-            authOutput.writeObject(encryptedStuff);
+            // byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey,new Message("verify", null, list));
+            // authOutput.writeObject(encryptedStuff);
+            sendAuthMessage(new Message("verify", null, list), AESkey);
             // receive response
 
-            Message response = symmDecrypt(AESkey, (byte[][])authInput.readObject());
+            Message response = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][])authInput.readObject());
             t = response.getToken(); // stuck here
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -296,8 +235,9 @@ public class Client {
                         stuff.add(name);
                         
                         //same as above, need two different calls bc normally two keys
-                        encryptedStuff = symmEncrypt(askey, new Message("delete", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("delete", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("delete", null, stuff), askey);
                         // encryptedStuff = symmEncrypt(reskey, new Message("delete", null, stuff));
                         // resourceOutput.writeObject(encryptedStuff);
                         break;
@@ -306,33 +246,40 @@ public class Client {
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(reskey, new Message("collect", null, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
-                        encryptedStuff = symmEncrypt(askey, new Message("collect", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("collect", null, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
+                        sendResourceMessage(new Message("collect", null, stuff), reskey);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("collect", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("collect", null, stuff), askey);
                         break;
 
                     case "release":
                         if (split[1].isEmpty())
                             return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(askey, new Message("empty", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("empty", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("empty", null, stuff), askey);
 
                         encryptedStuff = (byte[][]) authInput.readObject();
-                        Message decrypted = symmDecrypt(askey, encryptedStuff);
+                        Message decrypted = SymmetricEncrypt.symmDecrypt(askey, encryptedStuff);
 
                         if ((boolean)decrypted.getStuff().get(0)) {
-                            encryptedStuff = symmEncrypt(askey, new Message("release", null, stuff));
-                            authOutput.writeObject(encryptedStuff);
-                            encryptedStuff = symmEncrypt(askey, new Message("release", null, stuff));
+                            // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("release", null, stuff));
+                            // authOutput.writeObject(encryptedStuff);
+                            sendAuthMessage(new Message("release", null, stuff), askey);
+                            encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("release", null, stuff));
                             resourceOutput.writeObject(encryptedStuff);
+                            sendResourceMessage(new Message("release", null, stuff), reskey);
                         } else {
-                            encryptedStuff = symmEncrypt(askey, new Message("null", null, stuff));
                             System.out.println("Group not released - not empty or doesn't exist");
-                            authOutput.writeObject(encryptedStuff);
-                            encryptedStuff = symmEncrypt(askey, new Message("null", null, stuff));
-                            resourceOutput.writeObject(encryptedStuff);
+                            // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("null", null, stuff));
+                            // authOutput.writeObject(encryptedStuff);
+                            sendAuthMessage(new Message("null", null, stuff), askey);
+                            // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("null", null, stuff));
+                            // resourceOutput.writeObject(encryptedStuff);
+                            sendResourceMessage(new Message("null", null, stuff), reskey);
                         }
                         break;
 
@@ -340,20 +287,23 @@ public class Client {
                         if (split[1].isEmpty() || split[2].isEmpty()) return 0;
                         stuff.add(split[1]);
                         stuff.add(split[2]);
-                        encryptedStuff = symmEncrypt(askey, new Message("assign", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("assign", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("assign", null, stuff), askey);
                         break;
 
                     case "list":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(askey, new Message("list", null, stuff));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("list", null, stuff));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("list", null, stuff), askey);
                         break;
 
                     case "groups":
-                        encryptedStuff = symmEncrypt(askey, new Message("groups", null, null));
-                        authOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, new Message("groups", null, null));
+                        // authOutput.writeObject(encryptedStuff);
+                        sendAuthMessage(new Message("groups", null, null), askey);
                         break;
 
                     default:
@@ -363,8 +313,9 @@ public class Client {
                 
                 switch (split[0]) {
                     case "list":
-                        encryptedStuff = symmEncrypt(reskey, new Message("list", t, signature, null));
-                        resourceOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("list", t, signature, null));
+                        // resourceOutput.writeObject(encryptedStuff);
+                        sendResourceMessage(new Message("list", t, signature, null), reskey);
                         break;
 
                     case "upload":
@@ -382,15 +333,17 @@ public class Client {
                             }
                         }
                         stuff.add(fileData);
-                        encryptedStuff = symmEncrypt(reskey, new Message("upload", t, signature, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("upload", t, signature, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
+                        sendResourceMessage(new Message("upload", t, signature, stuff), reskey);
                         break;
 
                     case "download":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(reskey, new Message("download", t, signature, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("download", t, signature, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
+                        sendResourceMessage(new Message("download", t, signature, stuff), reskey);
                         break;
 
                     default:
@@ -399,8 +352,9 @@ public class Client {
                     case "delete":
                         if (split[1].isEmpty()) return 0;
                         stuff.add(split[1]);
-                        encryptedStuff = symmEncrypt(reskey, new Message("delete", t, signature, stuff));
-                        resourceOutput.writeObject(encryptedStuff);
+                        // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("delete", t, signature, stuff));
+                        // resourceOutput.writeObject(encryptedStuff);
+                        sendResourceMessage(new Message("delete", t, signature, stuff), reskey);
                         break;
                 }
             }
@@ -418,7 +372,7 @@ public class Client {
             Message authResp;
             Message resResp;
             if (currentUser.getUsername().equals("root")) {
-                authResp = symmDecrypt(asKey, (byte[][])authInput.readObject());
+                authResp = SymmetricEncrypt.symmDecrypt(asKey, (byte[][])authInput.readObject());
                 switch (authResp.getCommand()) {
                     case "create":
                         resourceInput.readObject();//useless but needs to be kept
@@ -438,7 +392,7 @@ public class Client {
                         return true;
 
                     case "collect":
-                        resResp = symmDecrypt(resKey, (byte[][])resourceInput.readObject());
+                        resResp = SymmetricEncrypt.symmDecrypt(resKey, (byte[][])resourceInput.readObject());
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Succesfully collected group.");
                         } else {
@@ -447,7 +401,7 @@ public class Client {
                         return true;
 
                     case "release":
-                        resResp = symmDecrypt(resKey, (byte[][])resourceInput.readObject());
+                        resResp = SymmetricEncrypt.symmDecrypt(resKey, (byte[][])resourceInput.readObject());
                         if((boolean)authResp.getStuff().get(0)){
                             System.out.println("Succesfully released group.");
                         } else {
@@ -489,7 +443,7 @@ public class Client {
                 }
             } else {
                 byte[][] nonsense = (byte[][])resourceInput.readObject();
-                Message resp = symmDecrypt(resKey, nonsense);
+                Message resp = SymmetricEncrypt.symmDecrypt(resKey, nonsense);
                 System.out.println(resp.getCommand());
                 // // if signature is null, signature was rejected
                 // if (resp.getSignature() == null) {
@@ -566,10 +520,12 @@ public class Client {
         // send user to AS for verification
         // receive response
         try {
-            byte[][] encryptedStuff = symmEncrypt(AESkey, new Message("login", null, list));
-            authOutput.writeObject(encryptedStuff);
+            // byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message("login", null, list));
+            // authOutput.writeObject(encryptedStuff);
+            sendAuthMessage(new Message("login", null, list), AESkey);
 
-            Message resp = symmDecrypt(AESkey, (byte[][]) authInput.readObject());
+            Message resp = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][]) authInput.readObject());
+            System.out.println("got a response...");
             if(resp.getToken() == null) {
                 return null;
             }
@@ -591,10 +547,12 @@ public class Client {
     public static void exit(SecretKeySpec asKey, SecretKeySpec resKey) {
         // cleanup stuff
         try {
-            byte[][] encryptedStuff = symmEncrypt(asKey,new Message("exit", null, null));
-            authOutput.writeObject(encryptedStuff);
-            encryptedStuff = symmEncrypt(resKey,new Message("exit", null, null));
-            resourceOutput.writeObject(encryptedStuff);
+            // byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(asKey,new Message("exit", null, null));
+            // authOutput.writeObject(encryptedStuff);
+            sendAuthMessage(new Message("exit", null, null), asKey);
+            // encryptedStuff = SymmetricEncrypt.symmEncrypt(resKey,new Message("exit", null, null));
+            // resourceOutput.writeObject(encryptedStuff);
+            sendResourceMessage(new Message("exit", null, null), resKey);
             authSock.close();
             resourceSock.close();
             currentUser = null;
@@ -608,7 +566,7 @@ public class Client {
         System.exit(0);
     }
 
-    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input, PublicKey serverkey) throws Exception{
+    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input, PublicKey serverkey) throws Exception {
         int bitLength = 2048; // 1024, 2048
         SecureRandom rnd = new SecureRandom();
         BigInteger p = BigInteger.probablePrime(bitLength, rnd); 
@@ -643,7 +601,7 @@ public class Client {
         SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
 
         //test the new session key
-        Message keyPhrase = symmDecrypt(sharedSessionKey, encryptedKeyPhrase);
+        Message keyPhrase = SymmetricEncrypt.symmDecrypt(sharedSessionKey, encryptedKeyPhrase);
         String testDecryption = keyPhrase.getCommand();
         if(!testDecryption.equals("Bello!")){
             System.out.println("key generated but not the same as the server's key");
@@ -651,7 +609,7 @@ public class Client {
         }
 
         //testing the server's signature
-        if(!verifySig(signature, serialize(servPublic), serverkey)){
+        if(!verifySig(signature, SymmetricEncrypt.serialize(servPublic), serverkey)){
             System.out.println("Server untrustworthy, ending handshake.");
             return null;
         }
@@ -674,15 +632,22 @@ public class Client {
 
     public static void sendAuthMessage(Message m, SecretKey askey) {
         authCounter++;
-        byte[][] encryptedStuff = symmEncrypt(askey, m);
-        authOutput.writeObject(encryptedStuff);
+        byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
+        try {
+            authOutput.writeObject(encryptedStuff);
+        } catch (Exception e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
     }
 
     public static void sendResourceMessage(Message m, SecretKey reskey) {
         resCounter++;
-        byte[][]encryptedStuff = symmEncrypt(reskey, m);
-        resourceOutput.writeObject(encryptedStuff);
-        
+        byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
+        try {
+            resourceOutput.writeObject(encryptedStuff);
+        } catch (Exception e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
     }
 
     public static Message receiveAuthMessage(Message m) {
@@ -749,9 +714,13 @@ public class Client {
             byte[] s = null;
             while (currentUser == null) {
                 try {
+                    // System.out.println("Logging in...");
                     secret = login(authSessionKey);
+                    // System.out.println("Logged in, retrieving token...");
                     t = secret.getToken();
+                    // System.out.println("Obtained token, retrieving signature...");
                     s = secret.getSignature();
+                    // System.out.println("Signature obtained...");
                 } catch (Exception e) {
                     System.out.println("Login unsuccessful. Please try again.");
                 }

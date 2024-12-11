@@ -1,6 +1,2 @@
-group10
 null
-group9
-group2
-cam
 group1

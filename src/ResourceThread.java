@@ -127,6 +127,7 @@ public class ResourceThread extends Thread {
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
                 output.flush();
+                System.out.println("Handling client request...");
                 handleClientRequest(msg, output, AESkey);
                 output.flush();
 
@@ -164,16 +165,21 @@ public class ResourceThread extends Thread {
                         // ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
                         // Process process = pb.start();
                         // stuff.add(new String(process.getInputStream().readAllBytes()));
-
                         File curDir = new File("./group/" + t.getGroup());
                         File[] filesList = curDir.listFiles();
-                        for(File f : filesList){
-                            if(f.isFile()){
-                                // System.out.println(f.getName());
-                                stuff.add(f.getName());
+                        // if no files found
+                        if (filesList.length == 0) {
+                            stuff.add("No files found...");
+                        } else {
+                            for(File f : filesList){
+                                System.out.println("check 2");
+                                if(f.isFile()){
+                                    // System.out.println(f.getName());
+                                    stuff.add(f.getName());
+                                }
                             }
                         }
-
+                    
                         System.out.println("Sending back list message...");
                         encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
                         output.writeObject(encryptedStuff);

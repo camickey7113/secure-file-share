@@ -119,9 +119,9 @@ public class AuthThread extends Thread {
         User user;
         int clientCounter = msg.getCounter();
         byte[][] encryptedStuff;
-        if(checkCounter(clientCounter) == false){
-            return false;
-        }
+        // if(checkCounter(clientCounter) == false){
+        //     return false;
+        // }
         try {
             switch (msg.getCommand()) {
                 case "login":
