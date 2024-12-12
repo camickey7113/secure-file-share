@@ -421,7 +421,19 @@ public class AuthThread extends Thread {
         //generate the shared secret
         servAgree.init(servPair.getPrivate());
         servAgree.doPhase(clientPublic, true);
-        byte[] secret = servAgree.generateSecret();
+        byte[] secret = servAgree.generateSecret(); //this is the shared secret
+
+        //generate our modified secrets for our hmac keys and session IDs
+        byte[] hmacsecret = Arrays.copyOf(secret, secret.length);
+        byte[] sessionsecret = Arrays.copyOf(secret, secret.length);
+        int modified = secret[secret.length-1]++;
+        byte last = (byte) modified;
+        hmacsecret[secret.length-1] = last;
+        modified++;
+        last = (byte) modified;
+        sessionsecret[secret.length-1] = last;
+
+
         MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
         byte[] hashedsecret = Sha256.digest(secret);
         hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);

@@ -63,8 +63,8 @@ public class Client {
     private static User newUser;
 
     //Auth and Resource Counters
-    private static int authCounter;
-    private static int resCounter;
+    private static int authCounter = 0;
+    private static int resCounter = 0;
 
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
@@ -371,8 +371,12 @@ public class Client {
         try {
             Message authResp;
             Message resResp;
+           
             if (currentUser.getUsername().equals("root")) {
-                authResp = SymmetricEncrypt.symmDecrypt(asKey, (byte[][])authInput.readObject());
+                //authResp = SymmetricEncrypt.symmDecrypt(asKey, (byte[][])authInput.readObject());
+                //intercept auth response before being decrypted 
+                authResp = receiveAuthMessage((byte[][])authInput.readObject());
+
                 switch (authResp.getCommand()) {
                     case "create":
                         resourceInput.readObject();//useless but needs to be kept
@@ -631,8 +635,14 @@ public class Client {
     }
 
     public static void sendAuthMessage(Message m, SecretKey askey) {
+        // set counter
         authCounter++;
+        m.setCounter(authCounter);
+        // set hmac
+        //m.setHMAC(askey, askey);
+        // encrypt message
         byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
+        // send message
         try {
             authOutput.writeObject(encryptedStuff);
         } catch (Exception e) {
@@ -641,8 +651,14 @@ public class Client {
     }
 
     public static void sendResourceMessage(Message m, SecretKey reskey) {
+        // set counter
         resCounter++;
+        m.setCounter(resCounter);
+        // set hmac
+        //m.setHMAC(reskey, reskey);
+        // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
+        // send message
         try {
             resourceOutput.writeObject(encryptedStuff);
         } catch (Exception e) {
@@ -650,9 +666,12 @@ public class Client {
         }
     }
 
-    public static Message receiveAuthMessage(Message m) {
+    public static Message receiveAuthMessage(SecretKeySpec asKey, byte[][] encryptedMessage) {
         // receive output
+        Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
+        int currentAuthCount = m.getCounter();
 
+        if(currentAuthCount == )
         // decrypt
 
         // check counter
@@ -661,7 +680,9 @@ public class Client {
         return null;
     }
 
-    public static Message receiveResourceMessage(Message m) {
+    // counter logic
+
+    public static Message receiveResourceMessage(byte[][] encryptedMessage) {
         return null;
     }
     

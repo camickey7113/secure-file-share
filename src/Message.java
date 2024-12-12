@@ -2,6 +2,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.sound.sampled.AudioFormat.Encoding;
 
@@ -89,25 +90,24 @@ public class Message implements java.io.Serializable {
         return stuff.add(item);
     }
 
-    // deprecated because you should never have to update the counter
-    @Deprecated
     public void setCounter(int n) {
         this.counter = n;
     }
 
-    public void setHMAC(byte[] sessionID, byte[] key) {
-        this.hmac = generateHMAC(sessionID, key);
+    public void setHMAC(SecretKey sessionID, SecretKey hmacKey) {
+        this.hmac = generateHMAC(sessionID, hmacKey);
     }
 
     // Generates an HMAC using the command, counter, sessionID, and a key
-    public byte[] generateHMAC(byte[] sessionID, byte[] key) {
+    public byte[] generateHMAC(SecretKey sessionID, SecretKey hmacKey) {
         // generate string from command, counter, and session ID
-        String str = command + ":" + counter + ":" + sessionID; // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
+        String str = command + ":" + counter + ":" + sessionID.toString(); // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
+
 
         try {
             Mac mac = Mac.getInstance("HmacSHA256", BouncyCastleProvider.PROVIDER_NAME);
-            SecretKeySpec  mKey = new SecretKeySpec(key, "AES");
-            mac.init(mKey);
+            // SecretKeySpec  mKey = new SecretKeySpec(key, "AES");
+            mac.init(hmacKey);
             byte[] messageBytes = str.getBytes(StandardCharsets.UTF_8);
             mac.update(messageBytes, 0, messageBytes.length);
             byte[] output = new byte[mac.getMacLength()];

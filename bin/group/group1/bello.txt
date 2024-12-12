@@ -12,6 +12,8 @@ java -cp .:/Users/camickey7113/Documents/school/7semester/1653/cs1653-project-co
 
 javac -cp .:/Users/camickey7113/Documents/school/7semester/1653/cs1653-project-coles-army/lib/bcprov-jdk18on-1.78.1.jar:../lib/jbcrypt-0.4.jar *.java
 
+<<<<<<< HEAD
+=======
 java -cp "../lib/bcprov-jdk18on-1.78.1.jar;." Client 
 
 javac -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." AuthServer.java 
@@ -24,5 +26,6 @@ java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." ResourceSer
 
 javac -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client.java 
 
+>>>>>>> 53c945d649a66bde6e3a1dacba1cd98c95936a14
 java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client
 
