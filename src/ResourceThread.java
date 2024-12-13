@@ -31,7 +31,7 @@ public class ResourceThread extends Thread {
     private int resCounter;
     private ObjectInputStream input;
     private ObjectOutputStream output;
-
+    private SecretKeySpec hmacKey;
 
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
@@ -51,8 +51,6 @@ public class ResourceThread extends Thread {
         this.socket = socket;
         this.resCounter = 0;
     }
-
-    
 
     public static byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
         Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
@@ -114,8 +112,9 @@ public class ResourceThread extends Thread {
 
 
             //diffiehellman bullshit
-            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
-
+            ArrayList<SecretKeySpec> ret = Handshake.serverInitiateHandshake(output, input, server);
+            SecretKeySpec AESkey = ret.get(0);
+            hmacKey = ret.get(1);
             // Loop to read messages
             Message msg = null;
             int count = 0;
@@ -333,7 +332,7 @@ public class ResourceThread extends Thread {
         // set counter
         m.setCounter(++resCounter);
         // set hmac
-        m.setHMAC(reskey);
+        m.setHMAC(hmacKey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
         // send message
@@ -352,7 +351,7 @@ public class ResourceThread extends Thread {
             System.out.println("Something's fishy...(counter)");
         }
         // check HMAC
-        if (!m.checkHMAC(resKey)) {
+        if (!m.checkHMAC(hmacKey)) {
             System.out.println("Something's fishy...(hmac)");
         }
         return m;

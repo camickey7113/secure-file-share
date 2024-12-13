@@ -28,6 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
@@ -66,6 +67,8 @@ public class Client {
     private static int authCounter;
     private static int resCounter;
 
+    private static SecretKeySpec resHmacKey;
+    private static SecretKeySpec authHmacKey;
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
     public static Scanner scanner = new Scanner(System.in);
@@ -570,57 +573,6 @@ public class Client {
         System.exit(0);
     }
 
-    public static SecretKeySpec clientInitiateHandshake(ObjectOutputStream output, ObjectInputStream input, PublicKey serverkey) throws Exception {
-        int bitLength = 2048; // 1024, 2048
-        SecureRandom rnd = new SecureRandom();
-        BigInteger p = BigInteger.probablePrime(bitLength, rnd); 
-        BigInteger g = BigInteger.probablePrime(bitLength, rnd); 
-        // specify parameters to use for the algorithm
-        DHParameterSpec dhParams = new DHParameterSpec(p, g);
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", BouncyCastleProvider.PROVIDER_NAME);
-        keyGen.initialize(dhParams, new SecureRandom());
-        KeyPair clientPair = keyGen.generateKeyPair();
-        KeyAgreement clientAgree = KeyAgreement.getInstance("DH", BouncyCastleProvider.PROVIDER_NAME);
-        //initialize key agreement
-        clientAgree.init(clientPair.getPrivate());
-
-        //send the client's half of the shared secret
-        ArrayList<Object> stuff = new ArrayList<Object>();
-        stuff.add(clientPair.getPublic());
-        stuff.add(p);
-        stuff.add(g);
-        Message clienthalf = new Message(null, null, stuff);
-        output.writeObject(clienthalf);
-
-        //receive server's half of shared secret, generate key
-        byte[][] encryptedKeyPhrase = (byte[][]) input.readObject();
-        Key servPublic = (Key)input.readObject();
-        byte[] signature = (byte[]) input.readObject();
-        clientAgree.doPhase(servPublic, true);
-        byte[] secret = clientAgree.generateSecret();
-        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
-        byte[] hashedsecret = Sha256.digest(secret);
-        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
-        // System.out.println(new String(hashedsecret)); //for debugging
-        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
-
-        //test the new session key
-        Message keyPhrase = SymmetricEncrypt.symmDecrypt(sharedSessionKey, encryptedKeyPhrase);
-        String testDecryption = keyPhrase.getCommand();
-        if(!testDecryption.equals("Bello!")){
-            System.out.println("key generated but not the same as the server's key");
-            return null;
-        }
-
-        //testing the server's signature
-        if(!verifySig(signature, SymmetricEncrypt.serialize(servPublic), serverkey)){
-            System.out.println("Server untrustworthy, ending handshake.");
-            return null;
-        }
-
-        return sharedSessionKey;
-    }
-
     static boolean verifySig (byte[] signature, byte[] signed, PublicKey pubkey){
         try {
             Signature verifier = Signature.getInstance("SHA256withRSA/PSS", BouncyCastleProvider.PROVIDER_NAME);
@@ -639,7 +591,7 @@ public class Client {
         m.setCounter(++authCounter);
         // System.out.println("Sent AS Counter: " + authCounter);
         // set hmac
-        m.setHMAC(askey);
+        m.setHMAC(authHmacKey);
         // encrypt message
         byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
         // send message
@@ -654,7 +606,7 @@ public class Client {
         // set counter
         m.setCounter(++resCounter);
         // set hmac
-        m.setHMAC(reskey);
+        m.setHMAC(resHmacKey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
         // send message
@@ -722,8 +674,12 @@ public class Client {
         SecretKeySpec authSessionKey = null;
         SecretKeySpec resSessionKey = null;
         try{
-            authSessionKey = clientInitiateHandshake(authOutput, authInput, authPublicKey);
-            resSessionKey = clientInitiateHandshake(resourceOutput, resourceInput, resPublicKey);
+            ArrayList<SecretKeySpec> ret = Handshake.clientInitiateHandshake(authOutput, authInput, authPublicKey);
+            authSessionKey = ret.get(0);
+            authHmacKey = ret.get(1);
+            ret = Handshake.clientInitiateHandshake(resourceOutput, resourceInput, resPublicKey);
+            resSessionKey = ret.get(0);
+            resHmacKey = ret.get(1);
             if (authSessionKey == null) {
                 System.out.println("Failed to initiate auth handshake, exiting");
                 System.exit(1);

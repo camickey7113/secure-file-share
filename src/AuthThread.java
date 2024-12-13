@@ -33,6 +33,7 @@ public class AuthThread extends Thread {
     private ObjectInputStream input;
     private ObjectOutputStream output;
     
+    private SecretKeySpec hmacKey;
 
     static {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -394,7 +395,7 @@ public class AuthThread extends Thread {
         m.setCounter(++authCounter);
         // System.out.println("AS Counter: " + authCounter);
         // set hmac
-        m.setHMAC(askey);
+        m.setHMAC(hmacKey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
         // send message
@@ -414,53 +415,11 @@ public class AuthThread extends Thread {
             System.out.println("Something's fishy...(counter)");
         }
         // check HMAC
-        if (!m.checkHMAC(asKey)) {
+        if (!m.checkHMAC(hmacKey)) {
             System.out.println("Something's fishy...(hmac)");
         }
         return m;
    }
-
-    public SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
-        //retreive client half of handshake
-        Message clienthalf = (Message) input.readObject();
-        Key clientPublic = (Key) clienthalf.getStuff().get(0);
-        BigInteger p = (BigInteger) clienthalf.getStuff().get(1);
-        BigInteger g = (BigInteger) clienthalf.getStuff().get(2);
-
-        //generate servers half of the secret
-        DHParameterSpec dhParams = new DHParameterSpec(p, g);
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
-        keyGen.initialize(dhParams, new SecureRandom());
-        KeyPair servPair = keyGen.generateKeyPair();
-        KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
-
-        //generate the shared secret
-        servAgree.init(servPair.getPrivate());
-        servAgree.doPhase(clientPublic, true);
-        byte[] secret = servAgree.generateSecret(); //this is the shared secret
-
-        // generate our modified secrets for our hmac keys and session IDs
-        byte[] hmacsecret = Arrays.copyOf(secret, secret.length);
-        int modified = secret[secret.length-1] + 1;
-        byte last = (byte) modified;
-        hmacsecret[secret.length-1] = last;
-
-        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
-        byte[] hashedsecret = Sha256.digest(secret);
-        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
-        // System.out.println(new String(hashedsecret)); //for debugging
-        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
-        
-        //confirm our new AES256 key with the client and send our half of the shared secret with signature
-        String KeyPhrase = "Bello!";
-        byte[][] encryptedKeyPhrase = SymmetricEncrypt.symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
-        output.writeObject(encryptedKeyPhrase);
-        output.writeObject(servPair.getPublic());
-        output.writeObject(sign(SymmetricEncrypt.serialize(servPair.getPublic()), server.getPrivateKey()));
-
-
-        return sharedSessionKey;
-    }
 
     public void run() {
         try {
@@ -477,8 +436,9 @@ public class AuthThread extends Thread {
             Message msg = null;
 
 
-            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
-
+            ArrayList<SecretKeySpec> ret = Handshake.serverInitiateHandshake(output, input, server);
+            SecretKeySpec AESkey = ret.get(0);
+            hmacKey = ret.get(1);
 
 
             do {
