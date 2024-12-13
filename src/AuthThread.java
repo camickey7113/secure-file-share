@@ -107,8 +107,9 @@ public class AuthThread extends Thread {
     //     }
     // }
 
-    public Token generateToken(User user) {
+    public Token generateToken(User user, PublicKey resKey) {      
         Token newToken = new Token(user.getUsername(), user.getGroup());
+        newToken.setId(resKey);
         return newToken;
 
     }
@@ -125,41 +126,21 @@ public class AuthThread extends Thread {
         try {
             switch (msg.getCommand()) {
                 case "login":
-                    user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
+                    user = (User) msg.getStuff().get(0);
                     // authenticate the user
                     if (authenticate(user)) {
-                        // for (Map.Entry<String, User> entry :
-                        // server.getUserList().getUserMap().entrySet()) {
-                        // String usernamething = entry.getKey();
-                        // User userthing = entry.getValue();
-                        // System.out.println("Username: " + usernamething + ", User: " + userthing);
-                        // }
+
                         User authUser = server.getUserList().getUser(user.getUsername()); // this is whats failing
                         // get user from the username in the token
                         // System.out.print("this is the auth username" + authUser.getUsername());
-                        t = generateToken(authUser);
+                        PublicKey resKey = (PublicKey) msg.getStuff().get(1);
+                        t = generateToken(authUser, resKey);
                         stuff.add(user);
                         // create signature
                         byte[] signature = sign(hashToken(t), server.getPrivateKey());
                         // send message with token back to client:
                         sendMessage(AESkey, new Message(msg.getCommand(), t, signature, stuff));
 
-                    } else {
-                        sendMessage(AESkey, new Message(msg.getCommand(), null, null));
-                    }
-                    break;
-
-                case "verify":
-                    user = (User) msg.getStuff().get(0); // <--- THIS IS WHATS FAILING
-                    // authenticate the user
-
-                    if (authenticate(user)) {
-                        User authUser = server.getUserList().getUser(user.getUsername());
-                        // get user from the username in the token
-                        t = generateToken(authUser);
-                        stuff.add(user);
-                        // send message with token back to client:
-                        sendMessage(AESkey, new Message(msg.getCommand(), t, stuff));
                     } else {
                         sendMessage(AESkey, new Message(msg.getCommand(), null, null));
                     }

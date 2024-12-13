@@ -1,3 +1,5 @@
 user1,$2a$10$T/ki6T9/A..X4Icjt7DFuuOcwxiNsgjrfkekch3mTnIGEjxQpvwmq,group1,$2a$10$T/ki6T9/A..X4Icjt7DFuu
 user2,$2a$10$OmyeyugkJxeKey1b2n7K3uoEndsToiUypZGQi5fnScUaSe/Drzklq,group2,$2a$10$OmyeyugkJxeKey1b2n7K3u
 root,root,null,null
+user3,$2a$10$oCXqteVqNsf9k8p.i19dVOuDBO1.68whAb4A12j2Y5B2dyxjdjx6q,group3,$2a$10$oCXqteVqNsf9k8p.i19dVO
+user4,$2a$10$Bp0IR9HdJMJS1plMx1HT0.ggo1.EdIivvUayQrf01G3cAIoOvmW5m,group4,$2a$10$Bp0IR9HdJMJS1plMx1HT0.

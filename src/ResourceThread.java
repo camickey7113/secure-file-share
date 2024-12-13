@@ -159,6 +159,11 @@ public class ResourceThread extends Thread {
         if (!verified) {
             System.out.println("Signature not verified.");
         }
+        // check session ID
+        if (!t.checkServerID(server.getPublicKey())) {
+            System.out.println("Stolen token...");
+            return;
+        }
 
         try {
             if(verified){
