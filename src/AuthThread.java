@@ -45,68 +45,6 @@ public class AuthThread extends Thread {
         authCounter = 0;
     }
 
-    // //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
-    // //Symmetric Encryption
-    // public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-    //     Cipher aesc;
-    //     try {
-    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-    //         aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-    //         byte[] nonsense = serialize(msg);
-    //         byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
-    //         return ret;
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return null;
-    //     } 
-    // }
-
-    // //Symmetric Decryption
-    // public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-    //     Cipher aesc;
-    //     try {
-    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-    //         aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
-    //         byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
-    //         return (Message) deserialize(decrypted);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return null;
-    //     }
-        
-    // }
-
-    // //takes a generic serializable object and then turns it into a byte array for encryption
-    // public static byte[] serialize(Object obj){ 
-    //     try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-    //         try(ObjectOutputStream o = new ObjectOutputStream(b)){
-    //             o.writeObject(obj);
-    //         } catch (Exception e){
-    //             System.out.println("Error during serialization: "+ e.getMessage());
-    //             return null;
-    //         }
-    //         return b.toByteArray();
-    //     } catch (Exception e){
-    //         System.out.println("Error during serialization: "+ e.getMessage());
-    //         return null;
-    //     }
-    // }
-
-    // //takes in a byte stream and returns a generic object 
-    // public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
-    //     try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
-    //         try(ObjectInputStream i = new ObjectInputStream(b)){
-    //             return i.readObject();
-    //         } catch (Exception e){
-    //             System.out.println("Error during deserialization: "+ e.getMessage());
-    //             return null;
-    //         }
-    //     } catch (Exception e){
-    //         System.out.println("Error during deserialization: "+ e.getMessage());
-    //         return null;
-    //     }
-    // }
-
     public Token generateToken(User user, PublicKey resKey) {      
         Token newToken = new Token(user.getUsername(), user.getGroup());
         newToken.setId(resKey);
@@ -120,9 +58,7 @@ public class AuthThread extends Thread {
         User user;
         int clientCounter = msg.getCounter();
         byte[][] encryptedStuff;
-        // if(checkCounter(clientCounter) == false){
-        //     return false;
-        // }
+
         try {
             switch (msg.getCommand()) {
                 case "login":
@@ -304,14 +240,6 @@ public class AuthThread extends Thread {
         return true;
     }
 
-    public boolean checkCounter(int sentCount) {
-        if(sentCount == authCounter){
-            authCounter++;
-            return true;
-        }
-        return false;
-    }
-
     @Deprecated
     public boolean signAndSend(Message m, ObjectOutputStream output) {
         try {
@@ -353,19 +281,16 @@ public class AuthThread extends Thread {
     // AS. If the user is found and the provided password matches return true.
     // Otherwise, return falsse.
     public boolean authenticate(User user) {
-        // User authUser= rehashPassword(user, user.getSalt());
-        // System.out.println(authUser.getUsername() + "\n" + authUser.getPassword() +
-        // "\n"+ authUser.getGroup() +"\n"+ authUser.getSalt());
-        if ((user.getUsername().equals("root") && user.getPassword().equals("root")) || ((server.getUserList()).containsUser(user.getUsername()))
-                && BCrypt.checkpw(user.getPassword(), server.getUserList().getUser(user.getUsername()).getPassword())) {
-            System.out.println("Username and Password accepted.");
-            // if(!GroupList.containsGroup(user.getGroup())) {
-            // System.out.println("We messed up");
-            // return false;
-            // }
-
-            return true;
-        } else {
+        try {
+            if ((user.getUsername().equals("root") && user.getPassword().equals("root")) || ((server.getUserList()).containsUser(user.getUsername()))
+            && BCrypt.checkpw(user.getPassword(), server.getUserList().getUser(user.getUsername()).getPassword())) {
+                System.out.println("Username and Password accepted.");
+                return true;
+            } else {
+                System.out.println("User and/or Group does not exist");
+                return false;
+            }
+        } catch (Exception e) {
             System.out.println("User and/or Group does not exist");
             return false;
         }

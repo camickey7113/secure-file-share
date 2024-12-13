@@ -1,8 +1,11 @@
 //import java.util.*;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -13,7 +16,7 @@ public class Token implements java.io.Serializable {
 	private String group;
 	private String username;
 	private byte[] id; // for sha256 hash of the resource servers pub key
-	private Timestamp timestamp;
+	private Instant timestamp;
 	
 	static {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -26,8 +29,7 @@ public class Token implements java.io.Serializable {
 	public Token(String username, String group) {
 		this.username = username;
 		this.group = group;
-		this.timestamp = timestamp;
-		this.id = id;
+		this.timestamp = Instant.now().plus(Duration.ofHours(1));
 	}
 
 	public String getGroup() {
@@ -47,7 +49,7 @@ public class Token implements java.io.Serializable {
 	}
 
 	public String toString() {
-		return username + ":" + group + ":" + id.toString();
+		return username + ":" + group + ":" + new String(id, StandardCharsets.UTF_8);
 	}
 
 	public void setId(PublicKey key) {
@@ -58,8 +60,8 @@ public class Token implements java.io.Serializable {
 		return id;
 	}
 
-	public Timestamp getTimestamp(){
-		return timestamp;
+	public boolean isExpired(){
+		return Instant.now().isAfter(timestamp);
 	}
 
 	// takes a server ID and comapres it to the hashed version kept within the token
@@ -77,4 +79,5 @@ public class Token implements java.io.Serializable {
 			return null;
 		}
 	}
+
 }

@@ -373,7 +373,6 @@ public class Client {
 
     
     public static boolean handleResponse(SecretKeySpec asKey, SecretKeySpec resKey) {
-
         try {
             Message authResp;
             Message resResp;
@@ -455,12 +454,13 @@ public class Client {
                 byte[][] nonsense = (byte[][])resourceInput.readObject();
                 Message resp = receiveResourceMessage(resKey, nonsense);
                 System.out.println(resp.getCommand());
-                // // if signature is null, signature was rejected
-                // if (resp.getSignature() == null) {
-                //     System.out.println("Something's fishy...");
-                //     return false;
-                // }
+
                 switch (resp.getCommand()) {
+                    case "logout":
+                        System.out.println("Token expired, please log back in...");
+                        logout();
+                        break;
+                        
                     case "list":
                         ArrayList<Object> files = resp.getStuff();
                         for (int i = 0; i < files.size(); i++) {

@@ -123,9 +123,9 @@ public class ResourceThread extends Thread {
                 byte[][] nonsense = (byte[][]) input.readObject();
                 //msg = SymmetricEncrypt.symmDecrypt(AESkey, nonsense);
                 msg = receiveMessage(AESkey, nonsense);
+                // if msg is null, they tryna hack us
+                if (msg == null) break;
 
-                // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() +
-                // "] " + msg.getCommand());
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
                 output.flush();
@@ -158,6 +158,13 @@ public class ResourceThread extends Thread {
         }
         if (!verified) {
             System.out.println("Signature not verified.");
+            return;
+        }
+        // check timestamp
+        if (t.isExpired()) {
+            System.out.println("Token is expired...");
+            sendMessage(AESkey, new Message("logout", null, null));
+            return;
         }
         // check session ID
         if (!t.checkServerID(server.getPublicKey())) {
@@ -354,10 +361,16 @@ public class ResourceThread extends Thread {
         // check counter
         if(++resCounter != m.getCounter()) {
             System.out.println("Something's fishy...(counter)");
+
         }
         // check HMAC
         if (!m.checkHMAC(hmacKey)) {
             System.out.println("Something's fishy...(hmac)");
+        }
+
+        // check timestamp
+        if (m.getToken().isExpired()) {
+            System.out.println("Token is expired...");
         }
         return m;
    }
