@@ -28,7 +28,10 @@ public class ResourceThread extends Thread {
     private ResourceServer server;
     private final Socket socket; // The socket that we'll be talking over
     private Message msg;
-
+    private int resCounter;
+    private ObjectInputStream input;
+    private ObjectOutputStream output;
+    private SecretKeySpec hmacKey;
 
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
@@ -46,9 +49,8 @@ public class ResourceThread extends Thread {
     public ResourceThread(ResourceServer server, Socket socket) {
         this.server = server;
         this.socket = socket;
+        this.resCounter = 0;
     }
-
-    
 
     public static byte[] sign(byte[] hashedToken, PrivateKey privateKey) throws Exception {
         Signature signature = Signature.getInstance("SHA256withRSA/PSS", "BC");
@@ -85,10 +87,10 @@ public class ResourceThread extends Thread {
         
         //confirm our new AES256 key with the client and send our half of the shared secret with signature
         String KeyPhrase = "Bello!";
-        byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
+        byte[][] encryptedKeyPhrase = SymmetricEncrypt.symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
         output.writeObject(encryptedKeyPhrase);
         output.writeObject(servPair.getPublic());
-        output.writeObject(sign(serialize(servPair.getPublic()), server.getPrivateKey()));
+        output.writeObject(sign(SymmetricEncrypt.serialize(servPair.getPublic()), server.getPrivateKey()));
 
 
         return sharedSessionKey;
@@ -104,29 +106,30 @@ public class ResourceThread extends Thread {
             // Print incoming message
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
-            // set up I/O streams with the client
-            final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-            final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+            // // set up I/O streams with the client
+            input = new ObjectInputStream(socket.getInputStream());
+            output = new ObjectOutputStream(socket.getOutputStream());
 
 
             //diffiehellman bullshit
-            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
-
+            ArrayList<SecretKeySpec> ret = Handshake.serverInitiateHandshake(output, input, server);
+            SecretKeySpec AESkey = ret.get(0);
+            hmacKey = ret.get(1);
             // Loop to read messages
             Message msg = null;
             int count = 0;
             do {
                 // new decryption
                 byte[][] nonsense = (byte[][]) input.readObject();
-                msg = symmDecrypt(AESkey, nonsense);
-
-
+                //msg = SymmetricEncrypt.symmDecrypt(AESkey, nonsense);
+                msg = receiveMessage(AESkey, nonsense);
 
                 // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() +
                 // "] " + msg.getCommand());
                 System.out.println(msg.getCommand());
                 // // Write an ACK back to the sender
                 output.flush();
+                System.out.println("Handling client request...");
                 handleClientRequest(msg, output, AESkey);
                 output.flush();
 
@@ -164,19 +167,23 @@ public class ResourceThread extends Thread {
                         // ProcessBuilder pb = new ProcessBuilder("bash", "-c", "cd /src/group" + File.separator +  t.getGroup() + "; ls");
                         // Process process = pb.start();
                         // stuff.add(new String(process.getInputStream().readAllBytes()));
-
                         File curDir = new File("./group/" + t.getGroup());
                         File[] filesList = curDir.listFiles();
-                        for(File f : filesList){
-                            if(f.isFile()){
-                                // System.out.println(f.getName());
-                                stuff.add(f.getName());
+                        // if no files found
+                        if (filesList.length == 0) {
+                            stuff.add("No files found...");
+                        } else {
+                            for(File f : filesList){
+                                System.out.println("check 2");
+                                if(f.isFile()){
+                                    // System.out.println(f.getName());
+                                    stuff.add(f.getName());
+                                }
                             }
                         }
-
+                    
                         System.out.println("Sending back list message...");
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
                         // if(directory.isDirectory()) {
                         //     String[] files = directory.list();
@@ -195,12 +202,10 @@ public class ResourceThread extends Thread {
                             fout.write((byte[])msg.getStuff().get(1));
     
                             stuff.add(true);
-                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         } catch(Exception e) {
                             stuff.add(false);
-                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         }
                         break;
     
@@ -220,12 +225,10 @@ public class ResourceThread extends Thread {
                             stuff.add(true);
                             stuff.add(msg.getStuff().get(0));
                             stuff.add(fileData);
-                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         } catch (Exception e){
                             stuff.add(false);
-                            encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         }
                         break;
     
@@ -238,14 +241,13 @@ public class ResourceThread extends Thread {
                         } else {
                             stuff.add(false);
                         }
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
+                        ;
                         break;
     
                     default:
                         stuff.add(false);
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         break;
                 }
             } else {
@@ -256,8 +258,7 @@ public class ResourceThread extends Thread {
                     boolean directoryCreated = directory.mkdir();
                     stuff.add(true);
 
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "release":
@@ -272,8 +273,7 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -291,13 +291,11 @@ public class ResourceThread extends Thread {
                         stuff.add(directoryCreated3); 
                     }
 
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
                 default:
                     stuff.add(false);
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
                 }
             }
@@ -330,69 +328,98 @@ public class ResourceThread extends Thread {
         }
     }
 
+    public void sendMessage(SecretKey reskey, Message m) {
+        // set counter
+        m.setCounter(++resCounter);
+        // set hmac
+        m.setHMAC(hmacKey);
+        // encrypt message
+        byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
+        // send message
+        try {
+            output.writeObject(encryptedStuff);
+        } catch (Exception e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
+    }
+
+    public Message receiveMessage(SecretKeySpec resKey, byte[][] encryptedMessage) {
+        // decrypt
+        Message m = SymmetricEncrypt.symmDecrypt(resKey, encryptedMessage);
+        // check counter
+        if(++resCounter != m.getCounter()) {
+            System.out.println("Something's fishy...(counter)");
+        }
+        // check HMAC
+        if (!m.checkHMAC(hmacKey)) {
+            System.out.println("Something's fishy...(hmac)");
+        }
+        return m;
+   }
+
     //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
     //Symmetric Encryption
-    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-            byte[] nonsense = serialize(msg);
-            byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
-            return ret;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } 
-    }
+    // public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
+    //     java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    //     Cipher aesc;
+    //     try {
+    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+    //         aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+    //         byte[] nonsense = serialize(msg);
+    //         byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
+    //         return ret;
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return null;
+    //     } 
+    // }
 
-    //Symmetric Decryption
-    public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
-            byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
-            return (Message) deserialize(decrypted);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    // //Symmetric Decryption
+    // public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
+    //     java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    //     Cipher aesc;
+    //     try {
+    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+    //         aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
+    //         byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
+    //         return (Message) deserialize(decrypted);
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return null;
+    //     }
         
-    }
+    // }
 
-    //takes a generic serializable object and then turns it into a byte array for encryption
-    public static byte[] serialize(Object obj){ 
-        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-            try(ObjectOutputStream o = new ObjectOutputStream(b)){
-                o.writeObject(obj);
-            } catch (Exception e){
-                System.out.println("Error during serialization: "+ e.getMessage());
-                return null;
-            }
-            return b.toByteArray();
-        } catch (Exception e){
-            System.out.println("Error during serialization: "+ e.getMessage());
-            return null;
-        }
-    }
+    // //takes a generic serializable object and then turns it into a byte array for encryption
+    // public static byte[] serialize(Object obj){ 
+    //     try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+    //         try(ObjectOutputStream o = new ObjectOutputStream(b)){
+    //             o.writeObject(obj);
+    //         } catch (Exception e){
+    //             System.out.println("Error during serialization: "+ e.getMessage());
+    //             return null;
+    //         }
+    //         return b.toByteArray();
+    //     } catch (Exception e){
+    //         System.out.println("Error during serialization: "+ e.getMessage());
+    //         return null;
+    //     }
+    // }
 
-    //takes in a byte stream and returns a generic object 
-    public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
-        try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
-            try(ObjectInputStream i = new ObjectInputStream(b)){
-                return i.readObject();
-            } catch (Exception e){
-                System.out.println("Error during deserialization: "+ e.getMessage());
-                return null;
-            }
-        } catch (Exception e){
-            System.out.println("Error during deserialization: "+ e.getMessage());
-            return null;
-        }
-    }
+    // //takes in a byte stream and returns a generic object 
+    // public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
+    //     try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
+    //         try(ObjectInputStream i = new ObjectInputStream(b)){
+    //             return i.readObject();
+    //         } catch (Exception e){
+    //             System.out.println("Error during deserialization: "+ e.getMessage());
+    //             return null;
+    //         }
+    //     } catch (Exception e){
+    //         System.out.println("Error during deserialization: "+ e.getMessage());
+    //         return null;
+    //     }
+    // }
 
 
 

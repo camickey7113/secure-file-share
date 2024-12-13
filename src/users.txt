@@ -1,5 +1,3 @@
-user1,$2a$10$kxAvrg9kzmktDlwE6/sSsO8/T0ht9glv1FaBta7Pr1E2Aarizf8dC,group1,$2a$10$kxAvrg9kzmktDlwE6/sSsO
-user2,$2a$10$VGrzhA.770fvuSHtfRzlCuB341JW5fwfDqluYfXKXZajBrHKGZwVu,group2,$2a$10$VGrzhA.770fvuSHtfRzlCu
-user10,$2a$10$imT/oLLTMbTRVYPEFzbPJOAapdiF.8DsJbBtknGjaPdb38rsTJogO,group10,$2a$10$imT/oLLTMbTRVYPEFzbPJO
+user1,$2a$10$T/ki6T9/A..X4Icjt7DFuuOcwxiNsgjrfkekch3mTnIGEjxQpvwmq,group1,$2a$10$T/ki6T9/A..X4Icjt7DFuu
+user2,$2a$10$OmyeyugkJxeKey1b2n7K3uoEndsToiUypZGQi5fnScUaSe/Drzklq,group2,$2a$10$OmyeyugkJxeKey1b2n7K3u
 root,root,null,null
-user9,$2a$10$eRiY8JVS3BzbOHxlvmZjJunXeOybpJC6Wyi16Kov.BlM4WwzmROAq,group9,$2a$10$eRiY8JVS3BzbOHxlvmZjJu

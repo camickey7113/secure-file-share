@@ -28,83 +28,84 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 public class AuthThread extends Thread {
     private AuthServer server;
     private final Socket socket;
-    //public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    private int authCounter;
+
+    private ObjectInputStream input;
+    private ObjectOutputStream output;
+    
+    private SecretKeySpec hmacKey;
 
     static {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
     
-
-
-
     public AuthThread(AuthServer server, Socket socket) {
         this.server = server;
         this.socket = socket;
+        authCounter = 0;
     }
 
-    //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
-    //Symmetric Encryption
-    public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.ENCRYPT_MODE, AESkey);
-            byte[] nonsense = serialize(msg);
-            byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
-            return ret;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } 
-    }
+    // //New Symmetric Encryption Stuff ------------------------------------------------------------------------------------------
+    // //Symmetric Encryption
+    // public static byte[][] symmEncrypt(SecretKey AESkey, Message msg){
+    //     Cipher aesc;
+    //     try {
+    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+    //         aesc.init(Cipher.ENCRYPT_MODE, AESkey);
+    //         byte[] nonsense = serialize(msg);
+    //         byte[][] ret = {aesc.getIV(), aesc.doFinal(nonsense)};
+    //         return ret;
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return null;
+    //     } 
+    // }
 
-    //Symmetric Decryption
-    public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
-        Cipher aesc;
-        try {
-            aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
-            aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
-            byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
-            return (Message) deserialize(decrypted);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    // //Symmetric Decryption
+    // public static Message symmDecrypt(SecretKey AESkey, byte[][] encryptedStuff){
+    //     Cipher aesc;
+    //     try {
+    //         aesc = Cipher.getInstance("AES/CBC/PKCS7Padding", BouncyCastleProvider.PROVIDER_NAME);
+    //         aesc.init(Cipher.DECRYPT_MODE, AESkey, new IvParameterSpec(encryptedStuff[0]));
+    //         byte[] decrypted = aesc.doFinal(encryptedStuff[1]);
+    //         return (Message) deserialize(decrypted);
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return null;
+    //     }
         
-    }
+    // }
 
-    //takes a generic serializable object and then turns it into a byte array for encryption
-    public static byte[] serialize(Object obj){ 
-        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-            try(ObjectOutputStream o = new ObjectOutputStream(b)){
-                o.writeObject(obj);
-            } catch (Exception e){
-                System.out.println("Error during serialization: "+ e.getMessage());
-                return null;
-            }
-            return b.toByteArray();
-        } catch (Exception e){
-            System.out.println("Error during serialization: "+ e.getMessage());
-            return null;
-        }
-    }
+    // //takes a generic serializable object and then turns it into a byte array for encryption
+    // public static byte[] serialize(Object obj){ 
+    //     try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+    //         try(ObjectOutputStream o = new ObjectOutputStream(b)){
+    //             o.writeObject(obj);
+    //         } catch (Exception e){
+    //             System.out.println("Error during serialization: "+ e.getMessage());
+    //             return null;
+    //         }
+    //         return b.toByteArray();
+    //     } catch (Exception e){
+    //         System.out.println("Error during serialization: "+ e.getMessage());
+    //         return null;
+    //     }
+    // }
 
-    //takes in a byte stream and returns a generic object 
-    public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
-        try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
-            try(ObjectInputStream i = new ObjectInputStream(b)){
-                return i.readObject();
-            } catch (Exception e){
-                System.out.println("Error during deserialization: "+ e.getMessage());
-                return null;
-            }
-        } catch (Exception e){
-            System.out.println("Error during deserialization: "+ e.getMessage());
-            return null;
-        }
-    }
-
-
+    // //takes in a byte stream and returns a generic object 
+    // public static Object deserialize(byte[] nonsense) throws IOException, ClassNotFoundException{
+    //     try(ByteArrayInputStream b = new ByteArrayInputStream(nonsense)){
+    //         try(ObjectInputStream i = new ObjectInputStream(b)){
+    //             return i.readObject();
+    //         } catch (Exception e){
+    //             System.out.println("Error during deserialization: "+ e.getMessage());
+    //             return null;
+    //         }
+    //     } catch (Exception e){
+    //         System.out.println("Error during deserialization: "+ e.getMessage());
+    //         return null;
+    //     }
+    // }
 
     public Token generateToken(User user) {
         Token newToken = new Token(user.getUsername(), user.getGroup());
@@ -116,9 +117,11 @@ public class AuthThread extends Thread {
         ArrayList<Object> stuff = new ArrayList<Object>();
         Token t = msg.getToken();
         User user;
-
+        int clientCounter = msg.getCounter();
         byte[][] encryptedStuff;
-
+        // if(checkCounter(clientCounter) == false){
+        //     return false;
+        // }
         try {
             switch (msg.getCommand()) {
                 case "login":
@@ -139,12 +142,10 @@ public class AuthThread extends Thread {
                         // create signature
                         byte[] signature = sign(hashToken(t), server.getPrivateKey());
                         // send message with token back to client:
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), t, signature, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), t, signature, stuff));
 
                     } else {
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, null));
                     }
                     break;
 
@@ -158,11 +159,9 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), t, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), t, stuff));
                     } else {
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, null));
                     }
                     break;
 
@@ -177,8 +176,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                         stuff.add("not a valid group");
 
-                        encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         break;
                     }
 
@@ -189,8 +187,7 @@ public class AuthThread extends Thread {
                         members.add(key);
                     }
                     stuff.add(members);
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -219,8 +216,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "delete":
@@ -239,8 +235,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                     }
 
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
@@ -251,8 +246,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "empty":
@@ -264,8 +258,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(true);
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     stuff.remove(0);
                     break;
 
@@ -283,8 +276,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "assign":
@@ -307,22 +299,19 @@ public class AuthThread extends Thread {
                         stuff.add(true);
 
                     }
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "groups":
                     // return list of groups
                     stuff.add(true);
                     stuff.add(server.getGroupList().getGroupNames());
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "null":
                     stuff.add(false);
-                    encryptedStuff = symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 
@@ -332,6 +321,14 @@ public class AuthThread extends Thread {
         }
         
         return true;
+    }
+
+    public boolean checkCounter(int sentCount) {
+        if(sentCount == authCounter){
+            authCounter++;
+            return true;
+        }
+        return false;
     }
 
     @Deprecated
@@ -393,40 +390,36 @@ public class AuthThread extends Thread {
         }
     }
 
-    public SecretKeySpec serverInitiateHandshake(ObjectOutputStream output, ObjectInputStream input) throws Exception{
-        //retreive client half of handshake
-        Message clienthalf = (Message) input.readObject();
-        Key clientPublic = (Key) clienthalf.getStuff().get(0);
-        BigInteger p = (BigInteger) clienthalf.getStuff().get(1);
-        BigInteger g = (BigInteger) clienthalf.getStuff().get(2);
-
-        //generate servers half of the secret
-        DHParameterSpec dhParams = new DHParameterSpec(p, g);
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", "BC");
-        keyGen.initialize(dhParams, new SecureRandom());
-        KeyPair servPair = keyGen.generateKeyPair();
-        KeyAgreement servAgree = KeyAgreement.getInstance("DH", "BC");
-
-        //generate the shared secret
-        servAgree.init(servPair.getPrivate());
-        servAgree.doPhase(clientPublic, true);
-        byte[] secret = servAgree.generateSecret();
-        MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
-        byte[] hashedsecret = Sha256.digest(secret);
-        hashedsecret = java.util.Arrays.copyOf(hashedsecret, 32);
-        // System.out.println(new String(hashedsecret)); //for debugging
-        SecretKeySpec sharedSessionKey = new SecretKeySpec(hashedsecret, "AES");
-        
-        //confirm our new AES256 key with the client and send our half of the shared secret with signature
-        String KeyPhrase = "Bello!";
-        byte[][] encryptedKeyPhrase = symmEncrypt(sharedSessionKey, new Message(KeyPhrase, null, null));
-        output.writeObject(encryptedKeyPhrase);
-        output.writeObject(servPair.getPublic());
-        output.writeObject(sign(serialize(servPair.getPublic()), server.getPrivateKey()));
-
-
-        return sharedSessionKey;
+    public void sendMessage(SecretKey askey, Message m) {
+        // set counter
+        m.setCounter(++authCounter);
+        // System.out.println("AS Counter: " + authCounter);
+        // set hmac
+        m.setHMAC(hmacKey);
+        // encrypt message
+        byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
+        // send message
+        try {
+            output.writeObject(encryptedStuff);
+        } catch (Exception e) {
+            System.out.println("Error sending message: " + e.getMessage());
+        }
     }
+
+    public Message receiveMessage(SecretKeySpec asKey, byte[][] encryptedMessage) {
+        // decrypt
+        Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
+        // check counter
+        // System.out.println("AS Counter: " + authCounter);
+        if(++authCounter != m.getCounter()) {
+            System.out.println("Something's fishy...(counter)");
+        }
+        // check HMAC
+        if (!m.checkHMAC(hmacKey)) {
+            System.out.println("Something's fishy...(hmac)");
+        }
+        return m;
+   }
 
     public void run() {
         try {
@@ -434,8 +427,8 @@ public class AuthThread extends Thread {
             System.out.println("** New connection from " + socket.getInetAddress() + ":" + socket.getPort() + " **");
 
             // set up I/O streams with the client
-            final ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-            final ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+            input = new ObjectInputStream(socket.getInputStream());
+            output = new ObjectOutputStream(socket.getOutputStream());
 
             // Loop to read messages
             User authUser = null;
@@ -443,13 +436,15 @@ public class AuthThread extends Thread {
             Message msg = null;
 
 
-            SecretKeySpec AESkey = serverInitiateHandshake(output, input);
-
+            ArrayList<SecretKeySpec> ret = Handshake.serverInitiateHandshake(output, input, server);
+            SecretKeySpec AESkey = ret.get(0);
+            hmacKey = ret.get(1);
 
 
             do {
                 // read and print message
-                msg = symmDecrypt(AESkey, (byte[][])input.readObject());
+                //msg = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][])input.readObject());
+                msg = receiveMessage(AESkey, (byte[][]) input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
                 output.flush();
@@ -459,8 +454,7 @@ public class AuthThread extends Thread {
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 
             // Close and cleanup
-            System.out
-                    .println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
+            System.out.println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
             socket.close();
 
         } catch (Exception e) {
