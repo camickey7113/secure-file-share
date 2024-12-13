@@ -146,7 +146,7 @@ public class Client {
     // returns a Token that corresponds to the current user or null if the current
     // user was removed from the system after they already logged in
     @Deprecated
-    public static Token verifyUser() {
+    public Token verifyUser() {
         byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
         Token t = null;
         // construct list with user
@@ -375,7 +375,7 @@ public class Client {
             if (currentUser.getUsername().equals("root")) {
                 //authResp = SymmetricEncrypt.symmDecrypt(asKey, (byte[][])authInput.readObject());
                 //intercept auth response before being decrypted 
-                authResp = receiveAuthMessage((byte[][])authInput.readObject());
+                authResp = receiveAuthMessage(asKey, (byte[][])authInput.readObject());
 
                 switch (authResp.getCommand()) {
                     case "create":
@@ -447,7 +447,7 @@ public class Client {
                 }
             } else {
                 byte[][] nonsense = (byte[][])resourceInput.readObject();
-                Message resp = SymmetricEncrypt.symmDecrypt(resKey, nonsense);
+                Message resp = receiveResourceMessage(resKey, nonsense);
                 System.out.println(resp.getCommand());
                 // // if signature is null, signature was rejected
                 // if (resp.getSignature() == null) {
@@ -667,23 +667,31 @@ public class Client {
     }
 
     public static Message receiveAuthMessage(SecretKeySpec asKey, byte[][] encryptedMessage) {
-        // receive output
-        Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
-        int currentAuthCount = m.getCounter();
-
-        if(currentAuthCount == )
         // decrypt
-
+        Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
         // check counter
-
+        if(++authCounter != m.getCounter()) {
+            System.out.println("Something's fishy...(counter)");
+        }
         // check HMAC
-        return null;
+        if (!m.checkHMAC(null, null)) {
+            System.out.println("Something's fishy...(hmac)");
+        }
+        return m;
     }
 
-    // counter logic
-
-    public static Message receiveResourceMessage(byte[][] encryptedMessage) {
-        return null;
+    public static Message receiveResourceMessage(SecretKeySpec resKey, byte[][] encryptedMessage) {
+         // decrypt
+         Message m = SymmetricEncrypt.symmDecrypt(resKey, encryptedMessage);
+         // check counter
+         if(++resCounter != m.getCounter()) {
+             System.out.println("Something's fishy...(counter)");
+         }
+         // check HMAC
+         if (!m.checkHMAC(null, null)) {
+             System.out.println("Something's fishy...(hmac)");
+         }
+         return m;
     }
     
     public static void main(String[] args) {

@@ -121,7 +121,7 @@ public class Message implements java.io.Serializable {
 
     // Regenerates the HMAC using the required components and checks it against the current HMAC.
     // Returns false if there is no existing HMAC or if there is a mismatch
-    public boolean checkHMAC(byte[] sessionID, byte[] key) {
+    public boolean checkHMAC(SecretKey sessionID, SecretKey key) {
         if (this.hmac == null) return false;
         return (Arrays.equals(this.hmac, generateHMAC(sessionID, key)));
     }
