@@ -63,8 +63,8 @@ public class Client {
     private static User newUser;
 
     //Auth and Resource Counters
-    private static int authCounter = 0;
-    private static int resCounter = 0;
+    private static int authCounter;
+    private static int resCounter;
 
     // public static final byte[] encodedDemoKey = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
 
@@ -528,7 +528,7 @@ public class Client {
             // authOutput.writeObject(encryptedStuff);
             sendAuthMessage(new Message("login", null, list), AESkey);
 
-            Message resp = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][]) authInput.readObject());
+            Message resp = receiveAuthMessage(AESkey, (byte[][]) authInput.readObject());
             System.out.println("got a response...");
             if(resp.getToken() == null) {
                 return null;
@@ -636,10 +636,10 @@ public class Client {
 
     public static void sendAuthMessage(Message m, SecretKey askey) {
         // set counter
-        authCounter++;
-        m.setCounter(authCounter);
+        m.setCounter(++authCounter);
+        // System.out.println("Sent AS Counter: " + authCounter);
         // set hmac
-        //m.setHMAC(askey, askey);
+        m.setHMAC(askey);
         // encrypt message
         byte[][] encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
         // send message
@@ -652,10 +652,9 @@ public class Client {
 
     public static void sendResourceMessage(Message m, SecretKey reskey) {
         // set counter
-        resCounter++;
-        m.setCounter(resCounter);
+        m.setCounter(++resCounter);
         // set hmac
-        //m.setHMAC(reskey, reskey);
+        m.setHMAC(reskey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
         // send message
@@ -670,12 +669,13 @@ public class Client {
         // decrypt
         Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
         // check counter
+        // System.out.println("Received AS Counter: " + authCounter);
         if(++authCounter != m.getCounter()) {
-            System.out.println("Something's fishy...(counter)");
+            System.out.println("Something's fishy...(counterAS)");
         }
         // check HMAC
-        if (!m.checkHMAC(null, null)) {
-            System.out.println("Something's fishy...(hmac)");
+        if (!m.checkHMAC(asKey)) {
+            System.out.println("Something's fishy...(hmacAS)");
         }
         return m;
     }
@@ -685,16 +685,19 @@ public class Client {
          Message m = SymmetricEncrypt.symmDecrypt(resKey, encryptedMessage);
          // check counter
          if(++resCounter != m.getCounter()) {
-             System.out.println("Something's fishy...(counter)");
+             System.out.println("Something's fishy...(counterRES)");
          }
          // check HMAC
-         if (!m.checkHMAC(null, null)) {
-             System.out.println("Something's fishy...(hmac)");
+         if (!m.checkHMAC(resKey)) {
+             System.out.println("Something's fishy...(hmacRES)");
          }
          return m;
     }
     
     public static void main(String[] args) {
+
+        authCounter = 0;
+        resCounter = 0;
         
         // connect to AS and RS
         if (connectToAuthServer() && connectToResourceServer()) {

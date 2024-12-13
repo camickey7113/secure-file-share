@@ -94,14 +94,14 @@ public class Message implements java.io.Serializable {
         this.counter = n;
     }
 
-    public void setHMAC(SecretKey sessionID, SecretKey hmacKey) {
-        this.hmac = generateHMAC(sessionID, hmacKey);
+    public void setHMAC(SecretKey hmacKey) {
+        this.hmac = generateHMAC(hmacKey);
     }
 
     // Generates an HMAC using the command, counter, sessionID, and a key
-    public byte[] generateHMAC(SecretKey sessionID, SecretKey hmacKey) {
+    public byte[] generateHMAC(SecretKey hmacKey) {
         // generate string from command, counter, and session ID
-        String str = command + ":" + counter + ":" + sessionID.toString(); // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
+        String str = command + ":" + counter; // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
 
 
         try {
@@ -121,9 +121,9 @@ public class Message implements java.io.Serializable {
 
     // Regenerates the HMAC using the required components and checks it against the current HMAC.
     // Returns false if there is no existing HMAC or if there is a mismatch
-    public boolean checkHMAC(SecretKey sessionID, SecretKey key) {
+    public boolean checkHMAC(SecretKey key) {
         if (this.hmac == null) return false;
-        return (Arrays.equals(this.hmac, generateHMAC(sessionID, key)));
+        return (Arrays.equals(this.hmac, generateHMAC(key)));
     }
 
 

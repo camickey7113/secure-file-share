@@ -122,9 +122,8 @@ public class ResourceThread extends Thread {
             do {
                 // new decryption
                 byte[][] nonsense = (byte[][]) input.readObject();
-                msg = SymmetricEncrypt.symmDecrypt(AESkey, nonsense);
-
-
+                //msg = SymmetricEncrypt.symmDecrypt(AESkey, nonsense);
+                msg = receiveMessage(AESkey, nonsense);
 
                 // System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() +
                 // "] " + msg.getCommand());
@@ -185,8 +184,7 @@ public class ResourceThread extends Thread {
                         }
                     
                         System.out.println("Sending back list message...");
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         // File directory = new File("group" + File.separator + t.getGroup() + File.separator);
                         // if(directory.isDirectory()) {
                         //     String[] files = directory.list();
@@ -205,12 +203,10 @@ public class ResourceThread extends Thread {
                             fout.write((byte[])msg.getStuff().get(1));
     
                             stuff.add(true);
-                            encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         } catch(Exception e) {
                             stuff.add(false);
-                            encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         }
                         break;
     
@@ -230,12 +226,10 @@ public class ResourceThread extends Thread {
                             stuff.add(true);
                             stuff.add(msg.getStuff().get(0));
                             stuff.add(fileData);
-                            encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         } catch (Exception e){
                             stuff.add(false);
-                            encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                            output.writeObject(encryptedStuff);
+                            sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         }
                         break;
     
@@ -248,14 +242,13 @@ public class ResourceThread extends Thread {
                         } else {
                             stuff.add(false);
                         }
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
+                        ;
                         break;
     
                     default:
                         stuff.add(false);
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         break;
                 }
             } else {
@@ -266,8 +259,7 @@ public class ResourceThread extends Thread {
                     boolean directoryCreated = directory.mkdir();
                     stuff.add(true);
 
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "release":
@@ -282,8 +274,7 @@ public class ResourceThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -301,13 +292,11 @@ public class ResourceThread extends Thread {
                         stuff.add(directoryCreated3); 
                     }
 
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
                 default:
                     stuff.add(false);
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
                 }
             }
@@ -340,12 +329,11 @@ public class ResourceThread extends Thread {
         }
     }
 
-    public void sendMessage(Message m, SecretKey reskey) {
+    public void sendMessage(SecretKey reskey, Message m) {
         // set counter
-        resCounter++;
-        m.setCounter(resCounter);
+        m.setCounter(++resCounter);
         // set hmac
-        m.setHMAC(reskey, reskey);
+        m.setHMAC(reskey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, m);
         // send message
@@ -364,7 +352,7 @@ public class ResourceThread extends Thread {
             System.out.println("Something's fishy...(counter)");
         }
         // check HMAC
-        if (!m.checkHMAC(resKey, resKey)) {
+        if (!m.checkHMAC(resKey)) {
             System.out.println("Something's fishy...(hmac)");
         }
         return m;

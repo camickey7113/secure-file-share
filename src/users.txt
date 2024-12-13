@@ -1,2 +1,3 @@
 user1,$2a$10$T/ki6T9/A..X4Icjt7DFuuOcwxiNsgjrfkekch3mTnIGEjxQpvwmq,group1,$2a$10$T/ki6T9/A..X4Icjt7DFuu
+user2,$2a$10$OmyeyugkJxeKey1b2n7K3uoEndsToiUypZGQi5fnScUaSe/Drzklq,group2,$2a$10$OmyeyugkJxeKey1b2n7K3u
 root,root,null,null

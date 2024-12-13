@@ -141,12 +141,10 @@ public class AuthThread extends Thread {
                         // create signature
                         byte[] signature = sign(hashToken(t), server.getPrivateKey());
                         // send message with token back to client:
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), t, signature, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), t, signature, stuff));
 
                     } else {
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, null));
                     }
                     break;
 
@@ -160,11 +158,9 @@ public class AuthThread extends Thread {
                         t = generateToken(authUser);
                         stuff.add(user);
                         // send message with token back to client:
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), t, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), t, stuff));
                     } else {
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, null));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, null));
                     }
                     break;
 
@@ -179,8 +175,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                         stuff.add("not a valid group");
 
-                        encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                        output.writeObject(encryptedStuff);
+                        sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                         break;
                     }
 
@@ -191,8 +186,7 @@ public class AuthThread extends Thread {
                         members.add(key);
                     }
                     stuff.add(members);
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "create":
@@ -221,8 +215,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(false);
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "delete":
@@ -241,8 +234,7 @@ public class AuthThread extends Thread {
                         stuff.add(false);
                     }
 
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "collect":
@@ -253,8 +245,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "empty":
@@ -266,8 +257,7 @@ public class AuthThread extends Thread {
                     } else {
                         stuff.add(true);
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     stuff.remove(0);
                     break;
 
@@ -285,8 +275,7 @@ public class AuthThread extends Thread {
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "assign":
@@ -309,22 +298,19 @@ public class AuthThread extends Thread {
                         stuff.add(true);
 
                     }
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "groups":
                     // return list of groups
                     stuff.add(true);
                     stuff.add(server.getGroupList().getGroupNames());
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 case "null":
                     stuff.add(false);
-                    encryptedStuff = SymmetricEncrypt.symmEncrypt(AESkey, new Message(msg.getCommand(), null, stuff));
-                    output.writeObject(encryptedStuff);
+                    sendMessage(AESkey, new Message(msg.getCommand(), null, stuff));
                     break;
 
                 
@@ -403,12 +389,12 @@ public class AuthThread extends Thread {
         }
     }
 
-    public void sendMessage(Message m, SecretKey askey) {
+    public void sendMessage(SecretKey askey, Message m) {
         // set counter
-        authCounter++;
-        m.setCounter(authCounter);
+        m.setCounter(++authCounter);
+        // System.out.println("AS Counter: " + authCounter);
         // set hmac
-        m.setHMAC(askey, askey);
+        m.setHMAC(askey);
         // encrypt message
         byte[][]encryptedStuff = SymmetricEncrypt.symmEncrypt(askey, m);
         // send message
@@ -423,11 +409,12 @@ public class AuthThread extends Thread {
         // decrypt
         Message m = SymmetricEncrypt.symmDecrypt(asKey, encryptedMessage);
         // check counter
+        // System.out.println("AS Counter: " + authCounter);
         if(++authCounter != m.getCounter()) {
             System.out.println("Something's fishy...(counter)");
         }
         // check HMAC
-        if (!m.checkHMAC(asKey, asKey)) {
+        if (!m.checkHMAC(asKey)) {
             System.out.println("Something's fishy...(hmac)");
         }
         return m;
@@ -452,16 +439,11 @@ public class AuthThread extends Thread {
         servAgree.doPhase(clientPublic, true);
         byte[] secret = servAgree.generateSecret(); //this is the shared secret
 
-        //generate our modified secrets for our hmac keys and session IDs
+        // generate our modified secrets for our hmac keys and session IDs
         byte[] hmacsecret = Arrays.copyOf(secret, secret.length);
-        byte[] sessionsecret = Arrays.copyOf(secret, secret.length);
-        int modified = secret[secret.length-1]++;
+        int modified = secret[secret.length-1] + 1;
         byte last = (byte) modified;
         hmacsecret[secret.length-1] = last;
-        modified++;
-        last = (byte) modified;
-        sessionsecret[secret.length-1] = last;
-
 
         MessageDigest Sha256 = MessageDigest.getInstance("SHA-256", "BC");
         byte[] hashedsecret = Sha256.digest(secret);
@@ -501,7 +483,8 @@ public class AuthThread extends Thread {
 
             do {
                 // read and print message
-                msg = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][])input.readObject());
+                //msg = SymmetricEncrypt.symmDecrypt(AESkey, (byte[][])input.readObject());
+                msg = receiveMessage(AESkey, (byte[][]) input.readObject());
                 System.out.println("[" + socket.getInetAddress() + ":" + socket.getPort() + "] " + msg.getCommand());
 
                 output.flush();
@@ -511,8 +494,7 @@ public class AuthThread extends Thread {
             } while (!msg.getCommand().toUpperCase().equals("EXIT"));
 
             // Close and cleanup
-            System.out
-                    .println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
+            System.out.println("** Closing connection with " + socket.getInetAddress() + ":" + socket.getPort() + " **");
             socket.close();
 
         } catch (Exception e) {
