@@ -82,11 +82,10 @@ public class Client {
 
     public static boolean connectToAuthServer() {
         System.out.print("Enter authentication server name: ");
-        // AuthIP = scanner.next();
-        AuthIP = "localhost";
+        AuthIP = scanner.next();
         System.out.print("Enter authentication server port: ");
-        // AuthPortNumber = scanner.nextInt();
-        AuthPortNumber = 8000;
+        AuthPortNumber = scanner.nextInt();
+
         try {
             authSock = new Socket(AuthIP, AuthPortNumber);
         } catch (Exception e) {
@@ -119,11 +118,9 @@ public class Client {
 
     public static boolean connectToResourceServer() {
         System.out.print("Enter resource server name: ");
-        // ResourceIP = scanner.next();
-        ResourceIP = "localhost";
+        ResourceIP = scanner.next();
         System.out.print("Enter resource server port: ");
-        // ResourcePortNumber = scanner.nextInt();
-        ResourcePortNumber = 9000;
+        ResourcePortNumber = scanner.nextInt();
         try {
             resourceSock = new Socket(ResourceIP, ResourcePortNumber);
         } catch (Exception e) {
