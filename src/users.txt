@@ -1,3 +1,1 @@
-user1,$2a$10$xmsAJUlM8QqHu8Zcw33Rb.IGiV8Dm70/itwlvYEmKnGKd1ZHI3jxG,group1,$2a$10$xmsAJUlM8QqHu8Zcw33Rb.
-user2,$2a$10$80oWU5hrNjt/W4S2736.FeNAomcxWE1mhbjuIOqTmoeuz644QoyKO,group2,$2a$10$80oWU5hrNjt/W4S2736.Fe
 root,root,null,null
