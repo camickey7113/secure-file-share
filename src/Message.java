@@ -103,7 +103,6 @@ public class Message implements java.io.Serializable {
         // generate string from command, counter, and session ID
         String str = command + ":" + counter; // THIS IS GONNA CRASHHHH - need to convert byte[] to String? Maybe? There's no errors at compile-time
 
-
         try {
             Mac mac = Mac.getInstance("HmacSHA256", BouncyCastleProvider.PROVIDER_NAME);
             // SecretKeySpec  mKey = new SecretKeySpec(key, "AES");
@@ -125,7 +124,6 @@ public class Message implements java.io.Serializable {
         if (this.hmac == null) return false;
         return (Arrays.equals(this.hmac, generateHMAC(key)));
     }
-
 
     // managing the stuff list
     public boolean removeItem(Object item) {

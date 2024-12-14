@@ -330,14 +330,7 @@ public class Client {
                         stuff.add(split[1]);
                         File file = new File(split[1]);
                         // Create a byte array with the size of the file
-                        byte[] fileData = new byte[(int) file.length()];
-                        // Use FileInputStream to read the file into the byte array
-                        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-                            int bytesRead = fileInputStream.read(fileData);
-                            if (bytesRead != fileData.length) {
-                                throw new IOException("Could not read the entire file into the byte array.");
-                            }
-                        }
+                        byte[][] fileData = SymmetricEncrypt.encryptFile(reskey, file);
                         stuff.add(fileData);
                         // encryptedStuff = SymmetricEncrypt.symmEncrypt(reskey, new Message("upload", t, signature, stuff));
                         // resourceOutput.writeObject(encryptedStuff);
@@ -481,7 +474,12 @@ public class Client {
                             File file = new File((String) resp.getStuff().get(1));
                             file.createNewFile();
                             FileOutputStream fout = new FileOutputStream(file);
-                            fout.write((byte[]) resp.getStuff().get(2));
+                            byte[] monkey = (byte[]) resp.getStuff().get(2);
+                            // split array
+                            byte[][] contentsIV = {Arrays.copyOfRange(monkey, 0, 16) , Arrays.copyOfRange(monkey, 16, monkey.length)};
+                            byte[] contents = SymmetricEncrypt.decryptToBytes(resKey, contentsIV);
+                            fout.write(contents);
+
                             System.out.println("Download successful.");
                         } else {
                             System.out.println("An error has occurred. File not downloaded.");

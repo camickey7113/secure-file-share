@@ -24,10 +24,15 @@ public class GroupKey {
     public byte[] generateKey() {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES", "BC");
-        keyGen.init(256);
-        SecretKey secretKey = keyGen.generateKey();
-        return secretKey.getEncoded();
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES", "BC");
+            keyGen.init(256);
+            SecretKey secretKey = keyGen.generateKey();
+            return secretKey.getEncoded();
+        } catch (Exception e) {
+            System.out.println("Error generating group key: " + e.getMessage());
+            return null;
+        }
     }
 
     // Returns the most recent gkey

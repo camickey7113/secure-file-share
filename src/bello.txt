@@ -25,4 +25,3 @@ java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." ResourceSer
 javac -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client.java 
 
 java -cp "../lib/bcprov-jdk18on-1.78.1.jar;../lib/jbcrypt-0.4.jar;." Client
-
