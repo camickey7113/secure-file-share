@@ -1,0 +1,25 @@
+public class Plan {
+    
+    // function to encrypt files
+
+    // function to decrypt files
+
+    // 
+
+    // write groupkeys to a file
+
+    // read groupkeys from a file
+
+    // write versioning HashMap to a file
+
+    // read versioning HashMap from a file
+
+    // Important Steps
+    1. DS in AS to map groups to group keys
+    2. update assign to generate new groupkey for old group
+    3. update messages to include groupkey
+    4. update client to send version to RS
+    5. DS in RS to map file to version
+    6. update RS to return version to client
+    7. read all of this stuff to files so it persists 👎
+}

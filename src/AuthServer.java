@@ -15,7 +15,8 @@ public class AuthServer {
     // list of all users in the system
     private static UserList userList;
     public static GroupList groups;
-    
+    private static HashMap<String, GroupKey> groupKeys;
+
     private static PublicKey authPublicKey;
     private static PrivateKey authPrivateKey;
 
@@ -24,6 +25,11 @@ public class AuthServer {
     public AuthServer() {
         userList = new UserList();
         groups = new GroupList();
+        groupKeys = new HashMap<String, GroupKey>();
+    }
+
+    public HashMap<String, GroupKey> getGroupKeys() {
+        return groupKeys;
     }
 
     public UserList getUserList() {
@@ -190,8 +196,10 @@ public class AuthServer {
         server = new AuthServer();
         File usersFile = new File("users.txt");
         File groupFile = new File("groups.txt");
+        File groupKeyFile = new File("groupkeys.txt");
         try{
-           loadUserAndGroupList(usersFile, groupFile);
+            loadUserAndGroupList(usersFile, groupFile);
+            //loadGroupKeys(groupKeyFile);
         }
         catch(Exception e){
             System.out.println("Error Loading Users");

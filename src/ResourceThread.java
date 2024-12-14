@@ -158,7 +158,7 @@ public class ResourceThread extends Thread {
         }
         if (!verified) {
             System.out.println("Signature not verified.");
-            return;
+            //return;
         }
         // check timestamp
         if (t.isExpired()) {
@@ -376,13 +376,11 @@ public class ResourceThread extends Thread {
         // check counter
         if(++resCounter != m.getCounter()) {
             System.out.println("Something's fishy...(counter)");
-
         }
         // check HMAC
         if (!m.checkHMAC(hmacKey)) {
             System.out.println("Something's fishy...(hmac)");
         }
-
         // check timestamp
         if (m.getToken().isExpired()) {
             System.out.println("Token is expired...");

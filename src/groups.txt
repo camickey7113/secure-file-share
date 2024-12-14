@@ -1,5 +1,3 @@
 null
-group4
-group3
 group2
 group1

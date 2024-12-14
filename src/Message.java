@@ -25,6 +25,8 @@ public class Message implements java.io.Serializable {
     and a symmetric key shared between the two communicating servers
     */
     private byte[] hmac;
+    // groupkeys
+    private GroupKey groupKey;
 
     static {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -46,7 +48,6 @@ public class Message implements java.io.Serializable {
         this.stuff = stuff;
         this.counter = 0;
     }
-
 
     // Getters
     public String getCommand() {
@@ -73,6 +74,10 @@ public class Message implements java.io.Serializable {
         return hmac;
     }
 
+    public GroupKey getGroupKey() {
+        return groupKey;
+    }
+
     // Setters
     public void setCommand(String cmd) {
         this.command = cmd;
@@ -96,6 +101,10 @@ public class Message implements java.io.Serializable {
 
     public void setHMAC(SecretKey hmacKey) {
         this.hmac = generateHMAC(hmacKey);
+    }
+
+    public void setGroupKey(GroupKey groupKey){
+        this.groupKey = groupKey;
     }
 
     // Generates an HMAC using the command, counter, sessionID, and a key

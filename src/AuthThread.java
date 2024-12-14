@@ -34,6 +34,7 @@ public class AuthThread extends Thread {
     private ObjectOutputStream output;
     
     private SecretKeySpec hmacKey;
+    
 
     static {
         java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -74,8 +75,16 @@ public class AuthThread extends Thread {
                         stuff.add(user);
                         // create signature
                         byte[] signature = sign(hashToken(t), server.getPrivateKey());
+                        // include groupkey
+                        Message dartMonkey = new Message(msg.getCommand(), t, signature, stuff);
+
+                        // for (String g : server.getGroupKeys().keySet()) System.out.println(g);
+
+                        // if (authUser.getGroup() == null) System.out.println("monkey 4");
+                        // if (server.getGroupKeys().get(authUser.getGroup()) == null) System.out.println("monkey 3");
+                        dartMonkey.setGroupKey(server.getGroupKeys().get(authUser.getGroup()));
                         // send message with token back to client:
-                        sendMessage(AESkey, new Message(msg.getCommand(), t, signature, stuff));
+                        sendMessage(AESkey, dartMonkey);
 
                     } else {
                         sendMessage(AESkey, new Message(msg.getCommand(), null, null));
@@ -127,6 +136,8 @@ public class AuthThread extends Thread {
                             Group newGroup = new Group(newUser.getGroup());
                             server.getGroupList().addGroup(newGroup);
                             newGroup.addMember(newUser);
+                            // add group key
+                            server.getGroupKeys().put(newGroup.getName(), new GroupKey());
                             server.saveGroupList("groups.txt");
                             stuff.add(true);
                         }
@@ -159,7 +170,10 @@ public class AuthThread extends Thread {
                     if (server.getGroupList().getGroup((String) msg.getStuff().get(0)) != null) {
                         stuff.add(false);
                     } else {
-                        server.getGroupList().addGroup(new Group((String) (msg.getStuff()).get(0)));
+                        Group monk = new Group((String) (msg.getStuff()).get(0));
+                        server.getGroupList().addGroup(monk);
+                        // add group key
+                        server.getGroupKeys().put(monk.getName(), new GroupKey());
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
                     }
@@ -182,13 +196,14 @@ public class AuthThread extends Thread {
                 case "release":
                     System.out.println("releasing...");
                     Group delGroup = server.getGroupList().getGroup((String) msg.getStuff().get(0));
-                    // some redundant error checking
+                    // some redundandelGroupt error checking
                     if (delGroup == null) { // if the group doesnt exist
                         stuff.add(false);
                     }
                     if (delGroup.getMembers().size() != 0) { // if the group isnt empty
                         stuff.add(false);
                     } else {
+                        server.getGroupKeys().remove(delGroup);
                         server.getGroupList().removeGroup((String) (msg.getStuff()).get(0));
                         server.saveGroupList("groups.txt");
                         stuff.add(true);
@@ -205,6 +220,9 @@ public class AuthThread extends Thread {
                     } else {
                         // get user object
                         User assignee = server.getUserList().getUser((String) msg.getStuff().get(0));
+                        // generate new group key for old group
+                        // server.getGroupKeys().get(assignee.getGroup()).newVersion();
+                        // 😔
                         // remove user from old group
                         server.getGroupList().getGroup(assignee.getGroup()).removeMember(assignee);
                         // change group field in user
