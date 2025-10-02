@@ -1,1 +1,1 @@
-Information about how to use the program can be found here: [Documentation - User Manual & Technician's Guide.pdf](https://github.com/user-attachments/files/22665660/Documentation.-.User.Manual.Technician.s.Guide.pdf)
+To learn how to use the program, see [Documentation - User Manual & Technician's Guide](Documentation%20-%20User%20Manual%20&%20Technician's&20Guide.pdf)
