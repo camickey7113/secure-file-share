@@ -1,1 +1,3 @@
-To learn how to use the program, see [Documentation - User Manual & Technician's Guide](Documentation%20-%20User%20Manual%20&%20Technician's&20Guide.pdf)
+To learn how to use the program, see: Documentation - User Manual & Technician's Guide
+
+To see how the program was cryptographically hardened, see: Cole's Army - Defense Plan [CONFIDENTIAL] and Cole's Army - Strengthened Defense Plan [CONFIDENTIAL]
